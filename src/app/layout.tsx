@@ -1,5 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: '美容室予約システム',
@@ -13,6 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head>
+        <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="beforeInteractive" />
+      </head>
       <body>{children}</body>
     </html>
   )

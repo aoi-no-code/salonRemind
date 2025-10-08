@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Script from 'next/script'
 
 export default function LiffLinkPage() {
   const [message, setMessage] = useState<string>('初期化中...')
@@ -62,12 +63,15 @@ export default function LiffLinkPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 max-w-md w-full text-center">
-        <h1 className="text-xl font-bold text-gray-900 mb-3">予約とLINEの連携</h1>
-        <p className="text-gray-700">{message}</p>
+    <>
+      <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="beforeInteractive" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 max-w-md w-full text-center">
+          <h1 className="text-xl font-bold text-gray-900 mb-3">予約とLINEの連携</h1>
+          <p className="text-gray-700">{message}</p>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
