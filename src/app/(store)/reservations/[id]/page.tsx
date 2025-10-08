@@ -1,7 +1,9 @@
 import ReservationDetailClient from './ReservationDetailClient'
+import { use } from 'react'
 
-export default async function StoreReservationDetail({ params }: { params: { id: string } }) {
-  const reservationId = params.id
+export default function StoreReservationDetail({ params }: { params: Promise<{ id: string }> }) {
+  const awaited = use(params)
+  const reservationId = awaited.id
   return <ReservationDetailClient reservationId={reservationId} />
 }
 
