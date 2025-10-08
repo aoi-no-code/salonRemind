@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <rect width="300" height="300" fill="#F3F4F6"/>
+  <rect x="20" y="20" width="260" height="260" fill="white" stroke="#D1D5DB"/>
+  <text x="150" y="155" text-anchor="middle" fill="#6B7280" font-size="16">QR Placeholder</text>
+</svg>

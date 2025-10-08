@@ -1,0 +1,66 @@
+DB Schema Snapshot (from Supabase UI screenshots)
+Captured at: 2025-10-07
+
+Note: This file transcribes what is visible in the screenshots. Fields used by the codebase but not visible in the screenshots are listed in an "Observed in code" section per table.
+
+
+Table: customers (public.customers)
+- Columns
+  - id                uuid  PRIMARY KEY  DEFAULT gen_random_uuid()
+  - user_id           uuid  (FK → auth.users.id)  customers_user_id_fkey
+  - display_name      text  NULL
+  - line_user_id      text  NULL
+  - phone_number      text  NULL
+  - created_at        timestamp  DEFAULT now()
+- Foreign Keys
+  - customers_user_id_fkey: user_id → auth.users.id
+- Indexes
+  - Primary key on id (implicit)
+- Notes
+  - UI indicates RLS/policy banner (policies may be required to query data)
+
+
+Table: reservations (public.reservations)
+- Columns (as seen in screenshots)
+  - id                uuid  PRIMARY KEY  DEFAULT gen_random_uuid()
+  - customer_id       uuid  NULL
+  - store_id          uuid  NULL
+  - start_at          timestamp  NULL
+  - duration_min      int4  NULL
+  - status            reservation (enum)  DEFAULT 'scheduled'::reservation
+  - note              text  NULL
+  - created_by        uuid  NULL
+  - created_at        timestamp  DEFAULT now()
+  - end_at            timestamp  NULL
+- Foreign Keys
+  - (Not explicitly visible in screenshot; likely) customer_id → customers.id
+  - (Not explicitly visible in screenshot; likely) store_id → stores.id
+- Indexes
+  - Primary key on id (implicit)
+- Enum: reservation
+  - Values (from application usage): scheduled, cancelled, completed, change_requested
+- Observed in code (not visible in screenshot)
+  - link_token        text
+  - link_status       text (values: pending, linked)
+  - link_qr_url       text
+  - link_expires_at   timestamp
+
+
+Table: stores (public.stores)
+- Columns
+  - id                uuid  PRIMARY KEY  DEFAULT gen_random_uuid()
+  - name              text  NULL
+  - phone_number      text  NULL
+  - address           text  NULL
+  - created_at        timestamp  DEFAULT now()
+- Foreign Keys
+  - (None shown)
+- Indexes
+  - Primary key on id (implicit)
+- Notes
+  - UI indicates policy banner (policies may be required)
+
+
+How this file was produced
+- Transcribed directly from provided Supabase Table Editor screenshots.
+- Supplemented with fields required by the codebase where screenshots did not display them (marked as "Observed in code").
