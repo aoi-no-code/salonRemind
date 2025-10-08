@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ qrUrl, linkToken, linkExpiresAt: expiresAt.toISOString() })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: '入力が不正です', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: '入力が不正です', details: error.issues }, { status: 400 })
     }
     console.error('generate-qr error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

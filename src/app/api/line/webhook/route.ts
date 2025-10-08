@@ -81,9 +81,12 @@ async function handlePostback(event: line.PostbackEvent) {
       return
     }
     
-    // 本人確認
-    if (reservation.customers.line_user_id !== userId) {
-      console.error('本人確認失敗:', userId, reservation.customers.line_user_id)
+    // 本人確認（リレーションが単一/配列どちらでも扱えるようにする）
+    const customerRel: any = Array.isArray((reservation as any).customers)
+      ? (reservation as any).customers[0]
+      : (reservation as any).customers
+    if (!customerRel || customerRel.line_user_id !== userId) {
+      console.error('本人確認失敗:', userId, customerRel?.line_user_id)
       await sendReply(event.replyToken, 'この予約を変更する権限がありません。')
       return
     }
@@ -105,7 +108,10 @@ async function handlePostback(event: line.PostbackEvent) {
     
     if (parsed.remind === 'change') {
       newStatus = 'change_requested'
-      replyMessage = `変更希望を受け付けました。\nお手数ですが店舗（TEL: ${reservation.stores.phone_number}）までお電話ください。`
+      const storeRel: any = Array.isArray((reservation as any).stores)
+        ? (reservation as any).stores[0]
+        : (reservation as any).stores
+      replyMessage = `変更希望を受け付けました。\nお手数ですが店舗（TEL: ${storeRel?.phone_number || '不明'}）までお電話ください。`
     } else {
       newStatus = 'cancelled'
       replyMessage = 'キャンセルを承りました。\nまたのご利用をお待ちしております。'

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       for (const reservation of oneWeekReservations) {
         if (!reservation.line_user_id) continue
         
-        const message = {
+        const message: Parameters<typeof lineClient.pushMessage>[1] = {
           type: 'template',
           altText: `【1週間前リマインド】\n${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約があります。`,
           template: {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
               }
             ]
           }
-        }
+        } as any
         
         try {
           await lineClient.pushMessage(reservation.line_user_id, message)
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       for (const reservation of tomorrowReservations) {
         if (!reservation.line_user_id) continue
         
-        const message = {
+        const message: Parameters<typeof lineClient.pushMessage>[1] = {
           type: 'text',
           text: `【前日リマインド】\n明日 ${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約があります。\n変更・キャンセルはリマインドのボタン、またはお電話でお願いします。`
         }

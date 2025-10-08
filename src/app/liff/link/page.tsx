@@ -77,7 +77,7 @@ declare global {
       init: (config: { liffId: string }) => Promise<void>
       isLoggedIn: () => boolean
       login: () => void
-      getProfile: () => Promise<{ userId: string }>
+      getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
       getFriendship?: () => Promise<{ friendFlag: boolean }>
     }
   }

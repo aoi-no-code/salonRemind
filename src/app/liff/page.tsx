@@ -193,6 +193,7 @@ declare global {
       isLoggedIn: () => boolean
       login: () => void
       getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
+      getFriendship?: () => Promise<{ friendFlag: boolean }>
     }
   }
 }

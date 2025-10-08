@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { lineClient } from '@/lib/line'
+import * as line from '@line/bot-sdk'
 import { z } from 'zod'
 
 // ローカルタイムの ISO 形式 (秒付き) を許可: YYYY-MM-DDTHH:mm:ss
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
           return `${year}/${month}/${day}(${weekday}) ${hours}:${minutes}`
         }
         
-        const message = {
+        const message: line.TextMessage = {
           type: 'text',
           text: `【予約確定】\n${formatDateTime(reservation.start_at)} に ${store.name} のご予約を承りました。\n\n予約内容:\n・時間: ${formatDateTime(reservation.start_at)}〜\n・所要時間: ${reservation.duration_min}分${reservation.note ? `\n・備考: ${reservation.note}` : ''}\n\nご来店をお待ちしております。`
         }
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ 
         error: '入力データが正しくありません。',
-        details: error.errors 
+        details: error.issues 
       }, { status: 400 })
     }
     

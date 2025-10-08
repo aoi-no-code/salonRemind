@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ ok: false, message: '入力が不正です', details: error.errors }, { status: 400 })
+      return NextResponse.json({ ok: false, message: '入力が不正です', details: error.issues }, { status: 400 })
     }
     console.error('link confirm error:', error)
     return NextResponse.json({ ok: false, message: 'Internal server error' }, { status: 500 })

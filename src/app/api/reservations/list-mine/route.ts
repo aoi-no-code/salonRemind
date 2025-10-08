@@ -35,14 +35,19 @@ export async function GET(request: NextRequest) {
     }
     
     // レスポンス用にデータを整形
-    const formattedReservations = reservations?.map(reservation => ({
-      id: reservation.id,
-      startAt: reservation.start_at,
-      durationMin: reservation.duration_min,
-      status: reservation.status,
-      note: reservation.note,
-      storeName: reservation.stores.name
-    })) || []
+    const formattedReservations = reservations?.map(reservation => {
+      const storeRel: any = Array.isArray((reservation as any).stores)
+        ? (reservation as any).stores[0]
+        : (reservation as any).stores
+      return {
+        id: reservation.id,
+        startAt: reservation.start_at,
+        durationMin: reservation.duration_min,
+        status: reservation.status,
+        note: reservation.note,
+        storeName: storeRel?.name
+      }
+    }) || []
     
     return NextResponse.json({ 
       success: true,
@@ -55,7 +60,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ 
         error: 'パラメータが正しくありません。',
-        details: error.errors 
+        details: error.issues 
       }, { status: 400 })
     }
     
