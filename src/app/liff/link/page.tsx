@@ -16,7 +16,7 @@ export default function LiffLinkPage() {
 
         await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
         if (!window.liff.isLoggedIn()) {
-          window.liff.login()
+          window.liff.login({ scope: ['openid', 'profile'], prompt: 'consent' })
           return
         }
 
@@ -80,7 +80,7 @@ declare global {
     liff: {
       init: (config: { liffId: string }) => Promise<void>
       isLoggedIn: () => boolean
-      login: () => void
+      login: (options?: { scope?: string[]; prompt?: string }) => void
       getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
       getFriendship?: () => Promise<{ friendFlag: boolean }>
     }
