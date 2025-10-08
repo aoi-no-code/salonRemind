@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 
 export const metadata: Metadata = {
-  title: '美容室予約システム',
-  description: 'LINEから予約確認・変更ができる美容室向けシステム',
+  title: 'サロンリマインド',
+  description: 'LINEで予約の数日前にリマインドするシステム',
 }
 
 export default function RootLayout({
