@@ -45,10 +45,8 @@ export async function POST(request: NextRequest) {
 		})
 
 		// 既存メール重複チェック（Auth）
-		const existing = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1, email: input.email as any })
-		if (existing?.data?.users && existing.data.users.length > 0) {
-			return NextResponse.json({ error: 'このメールアドレスは既に登録されています。' }, { status: 409 })
-		}
+		// v2 SDKでは listUsers に email フィルタがないため、
+		// 重複は createUser のエラーで判定する
 
 		// パスワード生成
 		const password = generatePassword()
