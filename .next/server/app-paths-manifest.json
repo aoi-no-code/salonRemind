@@ -1,7 +1,4 @@
 {
-  "/api/stores/me/route": "app/api/stores/me/route.js",
-  "/api/reservations/create/route": "app/api/reservations/create/route.js",
-  "/api/reservations/generate-qr/route": "app/api/reservations/generate-qr/route.js",
   "/page": "app/page.js",
   "/dashboard/page": "app/dashboard/page.js"
 }
