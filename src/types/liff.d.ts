@@ -2,7 +2,7 @@
 declare global {
   interface Window {
     liff: {
-      init: (config: { liffId: string }) => Promise<void>
+      init: (config: { liffId: string; withLoginOnExternalBrowser?: boolean }) => Promise<void>
       isInClient?: () => boolean
       isLoggedIn: () => boolean
       login: (options?: { scope?: string[]; prompt?: string; redirectUri?: string }) => void

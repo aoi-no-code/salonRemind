@@ -126,7 +126,7 @@ export default function LiffLinkPage() {
 declare global {
   interface Window {
     liff: {
-      init: (config: { liffId: string }) => Promise<void>
+      init: (config: { liffId: string; withLoginOnExternalBrowser?: boolean }) => Promise<void>
       isLoggedIn: () => boolean
       login: (options?: {
         scope?: string[]
