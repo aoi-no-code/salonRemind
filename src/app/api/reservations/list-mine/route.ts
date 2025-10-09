@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
         duration_min,
         status,
         note,
-        stores!inner(name)
+        stores!inner(name),
+        customers!inner(line_user_id)
       `)
       .eq('customers.line_user_id', validatedQuery.lineUserId)
       .order('start_at', { ascending: true })

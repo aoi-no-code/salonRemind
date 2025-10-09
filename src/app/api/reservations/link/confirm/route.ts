@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { lineClient } from '@/lib/line'
+import * as line from '@line/bot-sdk'
 
 const BodySchema = z.object({
   reservationId: z.string().uuid(),
@@ -69,6 +71,44 @@ export async function POST(request: NextRequest) {
       .eq('id', reservationId)
     if (updateReservationError) {
       return NextResponse.json({ ok: false, message: '予約の更新に失敗しました。' }, { status: 500 })
+    }
+
+    // 連携完了のPush（Flex）を送信
+    try {
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+      const deeplinkUrl = liffId ? `https://liff.line.me/${liffId}?view=reservations` : undefined
+
+      const flex: line.FlexMessage = {
+        type: 'flex',
+        altText: '予約の連携が完了しました',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [
+              { type: 'text', text: '連携が完了しました', weight: 'bold', size: 'md' },
+              { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              deeplinkUrl
+                ? { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: deeplinkUrl } }
+                : { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: 'https://liff.line.me' } },
+            ]
+          }
+        }
+      }
+
+      await lineClient.pushMessage(lineUserId, flex)
+    } catch (pushError) {
+      console.error('Push送信エラー（連携完了通知）:', pushError)
+      // Push失敗は致命ではないため、API自体は成功を返す
     }
 
     return NextResponse.json({ ok: true })
