@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
     const linkToken = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
-    if (!appUrl) {
-      return NextResponse.json({ error: 'NEXT_PUBLIC_APP_URL が未設定です。' }, { status: 500 })
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+    if (!liffId) {
+      return NextResponse.json({ error: 'NEXT_PUBLIC_LIFF_ID が未設定です。' }, { status: 500 })
     }
-    const liffUrl = `${appUrl}/liff/link?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(linkToken)}`
+    const liffUrl = `https://liff.line.me/${liffId}?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(linkToken)}`
 
     const pngBuffer = await QRCode.toBuffer(liffUrl, { type: 'png', width: 600, errorCorrectionLevel: 'M' })
 

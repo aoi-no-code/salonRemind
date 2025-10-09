@@ -40,9 +40,11 @@ export default function LiffPage() {
     try {
       // LIFF初期化
       if (typeof window !== 'undefined' && window.liff) {
-        await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
-        
-        if (window.liff.isLoggedIn()) {
+        await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID!, withLoginOnExternalBrowser: true })
+        const inClient = window.liff.isInClient?.() ?? false
+        const isLoggedIn = window.liff.isLoggedIn()
+
+        if (isLoggedIn) {
           const profile = await window.liff.getProfile()
           setUserId(profile.userId)
 
@@ -61,8 +63,8 @@ export default function LiffPage() {
           }
 
           await loadReservations(profile.userId)
-        } else {
-          window.liff.login()
+        } else if (!inClient && !isLoggedIn) {
+          window.liff.login({ scope: ['openid', 'profile'], prompt: 'consent', redirectUri: new URL(window.location.href).toString() })
         }
       } else {
         // 開発環境でのフォールバック

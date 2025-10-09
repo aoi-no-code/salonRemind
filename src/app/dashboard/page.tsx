@@ -155,8 +155,10 @@ export default function DashboardPage() {
       }
 
       setQrUrl(genData.qrUrl)
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')
-      setLinkUrl(`${appUrl}/liff/link?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(genData.linkToken)}`)
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+      if (liffId) {
+        setLinkUrl(`https://liff.line.me/${liffId}?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(genData.linkToken)}`)
+      }
       setOpenQr(true)
     } catch (e: any) {
       console.log('[submit] error', e)

@@ -15,7 +15,7 @@ export default function LiffLinkPage() {
         return
       }
 
-      await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
+      await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID!, withLoginOnExternalBrowser: true })
 
       const inClient = window.liff.isInClient?.() ?? false
       const isLoggedIn = window.liff.isLoggedIn()
@@ -89,6 +89,12 @@ export default function LiffLinkPage() {
         strategy="afterInteractive"
         onLoad={() => run()}
       />
+      {/* 設定確認メモ:
+        - .env の NEXT_PUBLIC_LIFF_ID が正しいこと
+        - LINE Developers: LIFFエンドポイント → https://salon-remind.vercel.app/liff/link
+        - LINEログインのコールバックURL → https://salon-remind.vercel.app/liff/link
+        が一致していることを確認
+      */}
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 max-w-md w-full text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-3">予約とLINEの連携</h1>

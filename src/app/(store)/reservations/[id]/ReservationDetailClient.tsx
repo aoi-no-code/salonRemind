@@ -23,8 +23,10 @@ export default function ReservationDetailClient({ reservationId }: { reservation
       if (!res.ok) throw new Error(data.error || 'QR発行に失敗しました')
 
       setQrUrl(data.qrUrl)
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || ''
-      setLinkUrl(`${appUrl}/liff/link?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(data.linkToken)}`)
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+      if (liffId) {
+        setLinkUrl(`https://liff.line.me/${liffId}?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(data.linkToken)}`)
+      }
       setOpen(true)
     } catch (e: any) {
       setError(e.message || 'エラーが発生しました')
