@@ -41,27 +41,104 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, message: 'トークンの有効期限が切れています。' }, { status: 400 })
     }
 
-    // 顧客のLINE ID確認/更新
-    if (reservation.customer_id) {
-      const { data: customer, error: customerError } = await supabaseAdmin
-        .from('customers')
-        .select('id, line_user_id')
-        .eq('id', reservation.customer_id)
-        .single()
-      if (customerError || !customer) {
-        return NextResponse.json({ ok: false, message: '顧客が見つかりません。' }, { status: 404 })
-      }
+    // 顧客の解決（既存LINE IDがあればマージ）
+    // 1) LINE IDで既存顧客を探す
+    const { data: existingByLine } = await supabaseAdmin
+      .from('customers')
+      .select('id')
+      .eq('line_user_id', lineUserId)
+      .limit(1)
 
-      if (!customer.line_user_id) {
-        const { error: updateCustomerError } = await supabaseAdmin
-          .from('customers')
-          .update({ line_user_id: lineUserId })
-          .eq('id', reservation.customer_id)
-        if (updateCustomerError) {
-          return NextResponse.json({ ok: false, message: '顧客の更新に失敗しました。' }, { status: 500 })
+    if (existingByLine && existingByLine.length > 0) {
+      const existingCustomerId = existingByLine[0].id
+
+      // 予約に既に顧客が紐づいており、かつ別IDなら予約の顧客を既存の顧客へ付け替え（マージ）
+      if (reservation.customer_id && reservation.customer_id !== existingCustomerId) {
+        const oldCustomerId = reservation.customer_id as string
+
+        const { error: reassignError } = await supabaseAdmin
+          .from('reservations')
+          .update({ customer_id: existingCustomerId })
+          .eq('id', reservationId)
+        if (reassignError) {
+          console.error('予約の顧客付け替えエラー:', reassignError)
+          return NextResponse.json({ ok: false, message: '予約の更新に失敗しました。' }, { status: 500 })
         }
-      } else if (customer.line_user_id !== lineUserId) {
-        return NextResponse.json({ ok: false, message: '別のLINEアカウントと既に連携済みです。' }, { status: 409 })
+
+        // 旧顧客が他に参照されていなければクリーンアップ（失敗しても致命ではない）
+        try {
+          const { count } = await supabaseAdmin
+            .from('reservations')
+            .select('id', { count: 'exact', head: true })
+            .eq('customer_id', oldCustomerId)
+            .neq('id', reservationId)
+          if ((count || 0) === 0) {
+            await supabaseAdmin
+              .from('customers')
+              .delete()
+              .eq('id', oldCustomerId)
+              .is('line_user_id', null)
+          }
+        } catch (cleanupError) {
+          console.warn('旧顧客クリーンアップ警告:', cleanupError)
+        }
+      } else if (!reservation.customer_id) {
+        // 予約に顧客が未設定なら既存顧客を紐付け
+        const { error: attachError } = await supabaseAdmin
+          .from('reservations')
+          .update({ customer_id: existingCustomerId })
+          .eq('id', reservationId)
+        if (attachError) {
+          console.error('予約への顧客紐付けエラー:', attachError)
+          return NextResponse.json({ ok: false, message: '予約の更新に失敗しました。' }, { status: 500 })
+        }
+      }
+    } else {
+      // LINE ID未登録の顧客へ付与、もしくは顧客未設定なら新規作成して紐付け
+      if (reservation.customer_id) {
+        const { data: customer, error: customerError } = await supabaseAdmin
+          .from('customers')
+          .select('id, line_user_id')
+          .eq('id', reservation.customer_id)
+          .single()
+        if (customerError || !customer) {
+          return NextResponse.json({ ok: false, message: '顧客が見つかりません。' }, { status: 404 })
+        }
+        if (!customer.line_user_id) {
+          const { error: updateCustomerError } = await supabaseAdmin
+            .from('customers')
+            .update({ line_user_id: lineUserId })
+            .eq('id', reservation.customer_id)
+          if (updateCustomerError) {
+            const code = (updateCustomerError as any).code
+            if (code === '23505') {
+              return NextResponse.json({ ok: false, message: 'このLINEアカウントは別の顧客に既に連携されています。' }, { status: 409 })
+            }
+            console.error('顧客更新エラー:', updateCustomerError)
+            return NextResponse.json({ ok: false, message: '顧客の更新に失敗しました。' }, { status: 500 })
+          }
+        } else if (customer.line_user_id !== lineUserId) {
+          return NextResponse.json({ ok: false, message: '別のLINEアカウントと既に連携済みです。' }, { status: 409 })
+        }
+      } else {
+        // 顧客が予約に存在しない場合は新規作成して紐付け
+        const { data: created, error: createError } = await supabaseAdmin
+          .from('customers')
+          .insert({ line_user_id: lineUserId })
+          .select('id')
+          .single()
+        if (createError || !created) {
+          console.error('顧客作成エラー:', createError)
+          return NextResponse.json({ ok: false, message: '顧客の作成に失敗しました。' }, { status: 500 })
+        }
+        const { error: updateReservationCustomerError } = await supabaseAdmin
+          .from('reservations')
+          .update({ customer_id: created.id })
+          .eq('id', reservationId)
+        if (updateReservationCustomerError) {
+          console.error('予約の顧客設定エラー:', updateReservationCustomerError)
+          return NextResponse.json({ ok: false, message: '予約の更新に失敗しました。' }, { status: 500 })
+        }
       }
     }
 

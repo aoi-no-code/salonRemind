@@ -1,14 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 
 export default function LiffLinkPage() {
   const [message, setMessage] = useState('初期化中...')
   const [isNotFriend, setIsNotFriend] = useState(false)
 
+  const ranRef = useRef(false)
+
   // SDKロード後に呼ぶ
   async function run() {
+    if (ranRef.current) return
+    ranRef.current = true
     try {
       if (!(typeof window !== 'undefined' && window.liff)) {
         setMessage('LIFFが利用できません。')
@@ -41,8 +45,8 @@ export default function LiffLinkPage() {
         return
       }
 
-      // 友だち状態の確認（友だちでないとこの後のPushができない）
-      if (window.liff.getFriendship) {
+      // 友だち状態の確認（LINEアプリ内でのみ有効。外部ブラウザでは呼ばない）
+      if (inClient && window.liff.getFriendship) {
         try {
           const f = await window.liff.getFriendship()
           if (!f.friendFlag) {
@@ -50,8 +54,8 @@ export default function LiffLinkPage() {
             setMessage('友だち追加が必要です。追加後に「更新」ボタンを押してください。')
             return
           }
-        } catch {
-          // 失敗しても続行
+        } catch (e) {
+          // 取得失敗時は判定をスキップして続行
         }
       }
 
@@ -76,10 +80,7 @@ export default function LiffLinkPage() {
   }
 
   useEffect(() => {
-    // SDKが既に読み込まれていた場合に備えて二重実行防止
-    if (typeof window !== 'undefined' && (window as any).liff) {
-      run()
-    }
+    if (typeof window !== 'undefined' && (window as any).liff) run()
   }, [])
 
   return (
