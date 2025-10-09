@@ -16,7 +16,7 @@ export default function LiffLinkPage() {
 
         await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
         if (!window.liff.isLoggedIn()) {
-          ;(window.liff as any).login({ scope: ['openid', 'profile'], prompt: 'consent', redirectUri,})
+          ;(window.liff as any).login({ scope: ['openid', 'profile'], prompt: 'consent', redirectUri: window.location.href })
           return
         }
 
