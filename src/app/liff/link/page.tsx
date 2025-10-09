@@ -16,10 +16,21 @@ export default function LiffLinkPage() {
         }
 
         await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
-        if (!window.liff.isLoggedIn()) {
-          ;(window.liff as any).login({ scope: ['openid', 'profile'], prompt: 'consent', redirectUri: window.location.href })
-          return
+
+        const inClient = window.liff.isInClient?.() // LINEアプリ内で開いているか（SDKにより存在しないこともあるため ? 付き）
+        const isLoggedIn = window.liff.isLoggedIn()
+
+        // LINEアプリ外(ブラウザ) かつ 未ログイン の場合のみログイン
+        if (!inClient && !isLoggedIn) {
+            const redirectUri = new URL(window.location.href).toString() // クエリ保持
+            window.liff.login({
+                scope: ['openid', 'profile'],
+                prompt: 'consent',
+                redirectUri
+            })
+            return
         }
+
 
         const profile = await window.liff.getProfile()
         const url = new URL(window.location.href)
