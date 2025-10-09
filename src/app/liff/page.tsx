@@ -184,16 +184,4 @@ export default function LiffPage() {
     </div>
   )
 }
-
-// LIFF型定義
-declare global {
-  interface Window {
-    liff: {
-      init: (config: { liffId: string }) => Promise<void>
-      isLoggedIn: () => boolean
-      login: (options?: { scope?: string[]; prompt?: string }) => void
-      getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
-      getFriendship?: () => Promise<{ friendFlag: boolean }>
-    }
-  }
-}
+ 
