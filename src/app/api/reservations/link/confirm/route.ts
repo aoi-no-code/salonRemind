@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { lineClient } from '@/lib/line'
 import * as line from '@line/bot-sdk'
+import { formatJst } from '@/lib/time'
 
 const BodySchema = z.object({
   reservationId: z.string().uuid(),
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     // 予約取得（リンク項目と顧客）
     const { data: reservation, error: reservationError } = await supabaseAdmin
       .from('reservations')
-      .select('id, customer_id, link_token, link_status, link_expires_at')
+      .select('id, customer_id, link_token, link_status, link_expires_at, start_at, duration_min, stores!inner(name, address, phone_number)')
       .eq('id', reservationId)
       .single()
 
@@ -78,6 +79,21 @@ export async function POST(request: NextRequest) {
       const liffId = process.env.NEXT_PUBLIC_LIFF_ID
       const deeplinkUrl = liffId ? `https://liff.line.me/${liffId}?view=reservations` : undefined
 
+      const storeRel: any = Array.isArray((reservation as any).stores)
+        ? (reservation as any).stores[0]
+        : (reservation as any).stores
+      const storeName: string | undefined = storeRel?.name
+      const storeAddress: string | undefined = storeRel?.address
+      const storePhone: string | undefined = storeRel?.phone_number
+      const startAt = reservation.start_at ? formatJst(reservation.start_at) : undefined
+      const duration = reservation.duration_min
+
+      const detailLines: string[] = []
+      if (storeName) detailLines.push(`店舗: ${storeName}`)
+      if (storeAddress) detailLines.push(`住所: ${storeAddress}`)
+      if (storePhone) detailLines.push(`電話: ${storePhone}`)
+      if (startAt) detailLines.push(`日時: ${startAt} 〜 ${duration ?? ''}分`)
+
       const flex: line.FlexMessage = {
         type: 'flex',
         altText: '予約の連携が完了しました',
@@ -89,6 +105,9 @@ export async function POST(request: NextRequest) {
             spacing: 'md',
             contents: [
               { type: 'text', text: '連携が完了しました', weight: 'bold', size: 'md' },
+              ...(detailLines.length > 0
+                ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
+                : []),
               { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
             ]
           },
