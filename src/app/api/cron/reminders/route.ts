@@ -149,24 +149,20 @@ export async function GET(request: NextRequest) {
                     data: `remind=visit&rid=${reservation.reservation_id}`
                   }
                 },
-                { type: 'spacer', size: 'md' },
-                { type: 'separator', margin: 'md' },
-                { type: 'spacer', size: 'md' },
                 {
                   type: 'button',
                   style: 'secondary',
+                  margin: 'md',
                   action: {
                     type: 'postback',
                     label: '時間を変更したい',
                     data: `remind=change&rid=${reservation.reservation_id}`
                   }
                 },
-                { type: 'spacer', size: 'md' },
-                { type: 'separator', margin: 'md' },
-                { type: 'spacer', size: 'md' },
                 {
                   type: 'button',
                   style: 'secondary',
+                  margin: 'md',
                   action: {
                     type: 'postback',
                     label: 'キャンセルしたい',
@@ -191,7 +187,7 @@ export async function GET(request: NextRequest) {
               message_id: null
             }, { onConflict: 'reservation_id,kind,channel', ignoreDuplicates: true })
         } catch (error: any) {
-          console.error(`1週間前リマインド送信エラー: ${reservation.line_user_id}`, error)
+          console.error(`1週間前リマインド送信エラー: ${reservation.line_user_id}`, error?.response?.data || error)
           const errorText = typeof error?.message === 'string' ? error.message : JSON.stringify(error)
           await supabaseAdmin
             .from('reminder_logs')

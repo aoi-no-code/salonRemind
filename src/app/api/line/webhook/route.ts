@@ -142,8 +142,8 @@ async function handlePostback(event: line.PostbackEvent) {
     
     console.log(`予約${parsed.remind}処理完了: ${parsed.rid}`)
     
-  } catch (error) {
-    console.error('Postback処理エラー:', error)
+  } catch (error: any) {
+    console.error('Postback処理エラー:', error?.response?.data || error)
     try {
       await sendReply(event.replyToken, '処理中にエラーが発生しました。お手数ですが店舗までお電話ください。')
     } catch (replyError) {
