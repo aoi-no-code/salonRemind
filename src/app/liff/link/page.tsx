@@ -6,6 +6,8 @@ import Script from 'next/script'
 export default function LiffLinkPage() {
   const [message, setMessage] = useState('初期化中...')
   const [isNotFriend, setIsNotFriend] = useState(false)
+  const [debugMode, setDebugMode] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<{ inClient: boolean | null; isLoggedIn: boolean | null; ua: string } | null>(null)
 
   const ranRef = useRef(false)
 
@@ -19,10 +21,33 @@ export default function LiffLinkPage() {
         return
       }
 
-      await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID!, withLoginOnExternalBrowser: true })
+      // デバッグフラグ
+      try {
+        const u = new URL(window.location.href)
+        const dbg = u.searchParams.get('debug')
+        setDebugMode(dbg === '1' || dbg === 'true')
+      } catch {}
 
-      const inClient = window.liff.isInClient?.() ?? false
+      // isInClient が未定義な端末では true とみなして外ブラウザログインを避ける
+      const inClient = window.liff.isInClient ? window.liff.isInClient() : true
+
+      // 外ブラウザ時のみ withLoginOnExternalBrowser を有効化
+      const liffConfig: { liffId: string; withLoginOnExternalBrowser?: boolean } = {
+        liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+      }
+      if (!inClient) {
+        liffConfig.withLoginOnExternalBrowser = true
+      }
+      await window.liff.init(liffConfig)
+
       const isLoggedIn = window.liff.isLoggedIn()
+
+      // デバッグ情報保持
+      if (typeof navigator !== 'undefined') {
+        setDebugInfo({ inClient, isLoggedIn, ua: navigator.userAgent })
+      } else {
+        setDebugInfo({ inClient, isLoggedIn, ua: 'n/a' })
+      }
 
       // ブラウザ(アプリ外)で未ログインのときだけログイン。クエリは保持
       if (!inClient && !isLoggedIn) {
@@ -100,6 +125,14 @@ export default function LiffLinkPage() {
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 max-w-md w-full text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-3">予約とLINEの連携</h1>
           <p className="text-gray-700 mb-4">{message}</p>
+          {debugMode && debugInfo && (
+            <div className="text-left text-xs bg-gray-50 border border-gray-200 rounded p-3 mb-4 break-words">
+              <div className="font-semibold mb-1">Debug</div>
+              <div>inClient: {String(debugInfo.inClient)}</div>
+              <div>isLoggedIn: {String(debugInfo.isLoggedIn)}</div>
+              <div>ua: {debugInfo.ua}</div>
+            </div>
+          )}
           {isNotFriend && (
             <div className="space-y-3">
               <a

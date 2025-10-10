@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
       const flex: line.FlexMessage = {
         type: 'flex',
-        altText: '予約の連携が完了しました',
+        altText: '次回予約を受け付けました',
         contents: {
           type: 'bubble',
           body: {
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
             layout: 'vertical',
             spacing: 'md',
             contents: [
-              { type: 'text', text: '連携が完了しました', weight: 'bold', size: 'md' },
+              { type: 'text', text: '次回予約を受け付けました', weight: 'bold', size: 'md' },
               ...(detailLines.length > 0
                 ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
                 : []),

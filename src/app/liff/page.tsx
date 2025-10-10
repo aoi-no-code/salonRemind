@@ -40,8 +40,18 @@ export default function LiffPage() {
     try {
       // LIFF初期化
       if (typeof window !== 'undefined' && window.liff) {
-        await window.liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID!, withLoginOnExternalBrowser: true })
-        const inClient = window.liff.isInClient?.() ?? false
+        // isInClient 未定義端末では true とみなす（外ブラウザログインを避ける）
+        const inClient = window.liff.isInClient ? window.liff.isInClient() : true
+
+        // 外ブラウザ時のみ withLoginOnExternalBrowser を付与
+        const liffConfig: { liffId: string; withLoginOnExternalBrowser?: boolean } = {
+          liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+        }
+        if (!inClient) {
+          liffConfig.withLoginOnExternalBrowser = true
+        }
+        await window.liff.init(liffConfig)
+
         const isLoggedIn = window.liff.isLoggedIn()
 
         if (isLoggedIn) {

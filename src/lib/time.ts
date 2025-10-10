@@ -36,3 +36,28 @@ export function formatJstDate(date: Date): string {
   const day = String(jstDate.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+// 指定日のJSTにおける1日の開始/終了に対応するUTC境界を返す
+// start/end はUTCのDate、startIso/endIsoはISO文字列（PostgRESTフィルタ用）
+export function getUtcBoundsForJstDate(date: Date): {
+  start: Date
+  end: Date
+  startIso: string
+  endIso: string
+} {
+  const jstDate = toJst(date)
+  const year = jstDate.getFullYear()
+  const monthZeroBased = jstDate.getMonth()
+  const day = jstDate.getDate()
+
+  // 00:00 JST は UTC では前日の 15:00（-9h）
+  const startUtc = new Date(Date.UTC(year, monthZeroBased, day, -9, 0, 0))
+  const endUtc = new Date(Date.UTC(year, monthZeroBased, day + 1, -9, 0, 0))
+
+  return {
+    start: startUtc,
+    end: endUtc,
+    startIso: startUtc.toISOString(),
+    endIso: endUtc.toISOString()
+  }
+}

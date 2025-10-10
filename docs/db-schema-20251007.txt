@@ -64,3 +64,43 @@ Table: stores (public.stores)
 How this file was produced
 - Transcribed directly from provided Supabase Table Editor screenshots.
 - Supplemented with fields required by the codebase where screenshots did not display them (marked as "Observed in code").
+
+
+-- New: reminder_logs (public.reminder_logs)
+-- Purpose: Track reminder notification attempts and results across channels
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'reminder_kind') then
+    create type public.reminder_kind as enum ('7d_before', '1d_before', 'same_day');
+  end if;
+end $$;
+
+create table if not exists public.reminder_logs (
+  id uuid primary key default gen_random_uuid(),
+  reservation_id uuid not null references public.reservations(id) on delete cascade,
+  kind public.reminder_kind not null,
+  channel text not null default 'line',
+  status text not null default 'sent',
+  message_id text,
+  error text,
+  attempted_at timestamptz not null default now()
+);
+
+create unique index if not exists ux_reminder_logs_res_kind_channel
+  on public.reminder_logs(reservation_id, kind, channel);
+
+alter table public.reminder_logs enable row level security;
+
+drop policy if exists "reminder logs service role all" on public.reminder_logs;
+create policy "reminder logs service role all"
+  on public.reminder_logs
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+
+drop policy if exists "reminder logs admin read" on public.reminder_logs;
+create policy "reminder logs admin read"
+  on public.reminder_logs
+  for select
+  using ((auth.jwt() ->> 'role') = 'admin');
