@@ -7,6 +7,29 @@ import { z } from 'zod'
 // ローカルタイムの ISO 形式 (秒付き) を許可: YYYY-MM-DDTHH:mm:ss
 const LOCAL_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/
 
+// ローカルISO(タイムゾーンなし)をJSTのまま加算する
+function addMinutesToLocalIso(localIso: string, addMin: number): string {
+  const m = localIso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/)
+  if (!m) return localIso
+  const year = Number(m[1])
+  const month = Number(m[2]) - 1
+  const day = Number(m[3])
+  const hour = Number(m[4])
+  const minute = Number(m[5])
+  const second = Number(m[6])
+  // 便宜上、UTCベースのDateに(時刻-9h)を入れて計算→(+9h)を戻すと、JSTの壁時計と等価
+  const baseUtc = Date.UTC(year, month, day, hour - 9, minute, second)
+  const endUtc = new Date(baseUtc + addMin * 60 * 1000)
+  const endJst = new Date(endUtc.getTime() + 9 * 60 * 60 * 1000)
+  const y = endJst.getUTCFullYear()
+  const mo = String(endJst.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(endJst.getUTCDate()).padStart(2, '0')
+  const hh = String(endJst.getUTCHours()).padStart(2, '0')
+  const mm = String(endJst.getUTCMinutes()).padStart(2, '0')
+  const ss = String(endJst.getUTCSeconds()).padStart(2, '0')
+  return `${y}-${mo}-${d}T${hh}:${mm}:${ss}`
+}
+
 const CreateReservationSchema = z.object({
   // どちらか必須: customerId or customerName
   customerId: z.string().uuid().optional(),
@@ -27,9 +50,7 @@ export async function POST(request: NextRequest) {
     const validatedData = CreateReservationSchema.parse(body)
     
     // 開始時刻のバリデーション（JSTで00/30分）
-    const startDate = new Date(validatedData.startAt)
-    const jstDate = new Date(startDate.getTime() + (9 * 60 * 60 * 1000)) // UTC+9
-    const minutes = jstDate.getMinutes()
+    const minutes = Number(validatedData.startAt.slice(14,16))
     
     if (minutes !== 0 && minutes !== 30) {
       return NextResponse.json({ 
@@ -81,8 +102,8 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
     
-    // 終了時刻を計算
-    const endAt = new Date(startDate.getTime() + (validatedData.durationMin * 60 * 1000))
+    // 終了時刻を計算（JSTの壁時計で加算した結果をそのまま保存）
+    const endLocalIso = addMinutesToLocalIso(validatedData.startAt, validatedData.durationMin)
     
     // 予約作成
     const { data: reservation, error: reservationError } = await supabaseAdmin
@@ -90,8 +111,9 @@ export async function POST(request: NextRequest) {
       .insert({
         customer_id: customer.id,
         store_id: validatedData.storeId,
+        // DBにはローカルISO（JSTの壁時計）で保存
         start_at: validatedData.startAt,
-        end_at: endAt.toISOString(),
+        end_at: endLocalIso,
         duration_min: validatedData.durationMin,
         status: 'scheduled',
         note: validatedData.note
@@ -117,19 +139,25 @@ export async function POST(request: NextRequest) {
     // LINE通知送信（顧客にLINEユーザーIDが登録されている場合）
     if (customer.line_user_id) {
       try {
-        const formatDateTime = (dateStr: string) => {
-          const date = new Date(dateStr)
-          const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000))
-          const year = jstDate.getFullYear()
-          const month = String(jstDate.getMonth() + 1).padStart(2, '0')
-          const day = String(jstDate.getDate()).padStart(2, '0')
-          const hours = String(jstDate.getHours()).padStart(2, '0')
-          const minutes = String(jstDate.getMinutes()).padStart(2, '0')
-          
+        const formatDateTime = (s: string) => {
+          const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?$/)
+          if (m) {
+            const [_, y, mo, d, hh, mm] = m
+            const weekdayIdx = new Date(`${y}-${mo}-${d}T00:00:00Z`).getUTCDay()
+            const weekdays = ['日', '月', '火', '水', '木', '金', '土']
+            const wk = weekdays[weekdayIdx]
+            return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
+          }
+          const date = new Date(s)
+          const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000)
+          const y = jst.getFullYear()
+          const mo = String(jst.getMonth() + 1).padStart(2, '0')
+          const d = String(jst.getDate()).padStart(2, '0')
+          const hh = String(jst.getHours()).padStart(2, '0')
+          const mm = String(jst.getMinutes()).padStart(2, '0')
           const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-          const weekday = weekdays[jstDate.getDay()]
-          
-          return `${year}/${month}/${day}(${weekday}) ${hours}:${minutes}`
+          const wk = weekdays[jst.getDay()]
+          return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
         }
         
         const message: line.TextMessage = {
