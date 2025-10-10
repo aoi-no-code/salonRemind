@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
           console.log(`1週間前リマインド送信完了: ${reservation.line_user_id}`)
           await supabaseAdmin
             .from('reminder_logs')
-            .insert({
+            .upsert({
               reservation_id: reservation.reservation_id,
               kind: '7d_before',
               channel: CHANNEL,
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
           console.log(`前日リマインド送信完了: ${reservation.line_user_id}`)
           await supabaseAdmin
             .from('reminder_logs')
-            .insert({
+            .upsert({
               reservation_id: reservation.reservation_id,
               kind: '1d_before',
               channel: CHANNEL,
