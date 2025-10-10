@@ -110,23 +110,71 @@ export async function GET(request: NextRequest) {
         if (sentOneWeekSet.has(reservation.reservation_id)) continue
         
         const message: Parameters<typeof lineClient.pushMessage>[1] = {
-          type: 'template',
-          altText: `【1週間前リマインド】\n${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約があります。`,
-          template: {
-            type: 'buttons',
-            text: `【1週間前リマインド】\n${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約があります。`,
-            actions: [
-              {
-                type: 'postback',
-                label: '時間を変更したい',
-                data: `remind=change&rid=${reservation.reservation_id}`
-              },
-              {
-                type: 'postback',
-                label: 'キャンセルしたい',
-                data: `remind=cancel&rid=${reservation.reservation_id}`
-              }
-            ]
+          type: 'flex',
+          altText: `ご予約日が近づいてまいりました。\n${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約です。`,
+          contents: {
+            type: 'bubble',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: [
+                { type: 'text', text: 'こんにちは💐', size: 'md' },
+                { type: 'text', text: 'ご予約日が近づいてまいりました。', size: 'sm' },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'sm',
+                  margin: 'md',
+                  contents: [
+                    { type: 'text', text: `📍店舗：${reservation.store_name}`, wrap: true, size: 'sm' },
+                    { type: 'text', text: `🗓 ご予約日：${formatJst(reservation.start_at)}〜`, wrap: true, size: 'sm' }
+                  ]
+                },
+                { type: 'text', text: 'このままご来店予定でしたら、\n下のボタンから「来店予定」を押してください🌸', wrap: true, size: 'sm', margin: 'md' },
+                { type: 'text', text: '※「来店予定」が押されてない場合はこちらからご連絡する場合がございます。', wrap: true, size: 'xs', color: '#8c8c8c', margin: 'md' }
+              ]
+            },
+            footer: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'lg',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  action: {
+                    type: 'postback',
+                    label: '来店予定',
+                    data: `remind=visit&rid=${reservation.reservation_id}`
+                  }
+                },
+                { type: 'spacer', size: 'md' },
+                { type: 'separator', margin: 'md' },
+                { type: 'spacer', size: 'md' },
+                {
+                  type: 'button',
+                  style: 'secondary',
+                  action: {
+                    type: 'postback',
+                    label: '時間を変更したい',
+                    data: `remind=change&rid=${reservation.reservation_id}`
+                  }
+                },
+                { type: 'spacer', size: 'md' },
+                { type: 'separator', margin: 'md' },
+                { type: 'spacer', size: 'md' },
+                {
+                  type: 'button',
+                  style: 'secondary',
+                  action: {
+                    type: 'postback',
+                    label: 'キャンセルしたい',
+                    data: `remind=cancel&rid=${reservation.reservation_id}`
+                  }
+                }
+              ]
+            }
           }
         } as any
         

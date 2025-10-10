@@ -5,7 +5,7 @@ import * as line from '@line/bot-sdk'
 import { z } from 'zod'
 
 const PostbackDataSchema = z.object({
-  remind: z.enum(['change', 'cancel']),
+  remind: z.enum(['visit', 'change', 'cancel']),
   rid: z.string().uuid()
 })
 
@@ -92,6 +92,12 @@ async function handlePostback(event: line.PostbackEvent) {
     }
     
     // 既に処理済みかチェック
+    if (parsed.remind === 'visit' && reservation.status === 'scheduled') {
+      // 予約は元々 scheduled のため重複チェックはスキップしても良いが、
+      // 連打抑止のため一応メッセージを返す
+      await sendReply(event.replyToken, 'ご来店予定のご回答ありがとうございます。ご来店をお待ちしております。')
+      return
+    }
     if (parsed.remind === 'change' && reservation.status === 'change_requested') {
       await sendReply(event.replyToken, '変更希望は既に受け付けています。店舗からご連絡をお待ちください。')
       return
@@ -106,7 +112,10 @@ async function handlePostback(event: line.PostbackEvent) {
     let newStatus: string
     let replyMessage: string
     
-    if (parsed.remind === 'change') {
+    if (parsed.remind === 'visit') {
+      newStatus = 'scheduled'
+      replyMessage = 'ご来店予定のご回答ありがとうございます。ご来店をお待ちしております。'
+    } else if (parsed.remind === 'change') {
       newStatus = 'change_requested'
       const storeRel: any = Array.isArray((reservation as any).stores)
         ? (reservation as any).stores[0]

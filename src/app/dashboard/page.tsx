@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import QrModal from '@/components/QrModal'
 import { supabase } from '@/lib/supabaseClient'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const [openQr, setOpenQr] = useState(false)
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [qrUrl, setQrUrl] = useState<string | undefined>(undefined)
   const [linkUrl, setLinkUrl] = useState<string | undefined>(undefined)
+  
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -167,6 +169,7 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -174,6 +177,9 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">店舗ダッシュボード</h1>
             <p className="text-gray-600 text-sm">{storeName ? `ログイン中の店舗: ${storeName}` : '店舗が見つかりません。メールやAuthの紐付けをご確認ください。'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/reminders" className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md">通知の予定/履歴</Link>
           </div>
         </header>
 
@@ -248,6 +254,8 @@ export default function DashboardPage() {
             </ul>
           </aside>
         </div>
+
+
       </div>
       <QrModal open={openQr} onClose={() => setOpenQr(false)} qrUrl={qrUrl} linkUrl={linkUrl} />
     </div>
