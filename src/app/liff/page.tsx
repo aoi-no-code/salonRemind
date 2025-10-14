@@ -215,7 +215,12 @@ export default function LiffPage() {
 
                   {reservation.status === 'change_requested' && (
                     <div className="grid grid-cols-2 gap-3 mt-2">
-                      <div />
+                      <button
+                        disabled
+                        className="w-full py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed"
+                      >
+                        変更を希望
+                      </button>
                       <button
                         disabled={working === reservation.id || !userId}
                         onClick={() => setConfirm({ type: 'cancel', reservation })}
