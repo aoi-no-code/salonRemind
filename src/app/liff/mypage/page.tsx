@@ -68,8 +68,8 @@ export default function LiffMyPage() {
         const res = await fetch(`/api/reservations/list-mine?lineUserId=${profile.userId}`)
         const data = await res.json()
         if (data?.success && Array.isArray(data.reservations)) {
-          // 先頭から status=scheduled を優先
-          const upcoming = (data.reservations as any[]).find((r) => r.status === 'scheduled')
+          // 先頭から status=scheduled/visit_planned を優先
+          const upcoming = (data.reservations as any[]).find((r) => r.status === 'scheduled' || r.status === 'visit_planned')
           if (upcoming) {
             setNextReservation({
               id: upcoming.id,

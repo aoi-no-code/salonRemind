@@ -7,25 +7,27 @@ interface Reservation {
   id: string
   startAt: string
   durationMin: number
-  status: 'scheduled' | 'cancelled' | 'completed' | 'change_requested'
+  status: 'scheduled' | 'visit_planned' | 'cancelled' | 'completed' | 'change_requested'
   note?: string
   storeName: string
   storePhoneNumber?: string | null
 }
 
 const statusLabels = {
-  scheduled: '予約確定',
+  scheduled: '予約中',
+  visit_planned: '来店予定',
   cancelled: 'キャンセル',
   completed: '完了',
   change_requested: '変更希望'
-}
+} as const
 
 const statusColors = {
   scheduled: 'bg-blue-100 text-blue-800',
+  visit_planned: 'bg-indigo-100 text-indigo-800',
   cancelled: 'bg-red-100 text-red-800',
   completed: 'bg-green-100 text-green-800',
   change_requested: 'bg-yellow-100 text-yellow-800'
-}
+} as const
 
 export default function LiffPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -188,7 +190,7 @@ export default function LiffPage() {
 
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <button
-                      disabled={working === reservation.id || reservation.status !== 'scheduled' || !userId}
+                      disabled={working === reservation.id || !['scheduled','visit_planned'].includes(reservation.status) || !userId}
                       onClick={() => setConfirm({ type: 'change', reservation })}
                       className={`w-full py-2 rounded-lg text-sm font-semibold ${
                         reservation.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-100 text-gray-400'
@@ -198,7 +200,7 @@ export default function LiffPage() {
                     </button>
 
                     <button
-                      disabled={working === reservation.id || reservation.status !== 'scheduled' || !userId}
+                      disabled={working === reservation.id || !['scheduled','visit_planned'].includes(reservation.status) || !userId}
                       onClick={() => setConfirm({ type: 'cancel', reservation })}
                       className={`w-full py-2 rounded-lg text-sm font-semibold ${
                         reservation.status === 'scheduled' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-400'

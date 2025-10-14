@@ -111,10 +111,21 @@ async function handlePostback(event: line.PostbackEvent) {
       return
     }
 
-    // 来店予定はサーバー側のDB更新は行わず、受領メッセージのみ返す
+    // 来店予定: visit_planned へ更新
     if (parsed.remind === 'visit') {
-      await sendReply(event.replyToken, 'ご来店予定のご回答ありがとうございます。ご来店をお待ちしております。')
-      console.log(`予約visit応答完了: ${parsed.rid}`)
+      const { error: updateError } = await supabaseAdmin
+        .from('reservations')
+        .update({ status: 'visit_planned' })
+        .eq('id', parsed.rid)
+
+      if (updateError) {
+        console.error('visit_planned 更新エラー:', updateError)
+        await sendReply(event.replyToken, '処理中にエラーが発生しました。お手数ですが店舗までお電話ください。')
+        return
+      }
+
+      await sendReply(event.replyToken, '「来店予定」を受け付けました。当日のご来店をお待ちしております。')
+      console.log(`予約visit_planned更新完了: ${parsed.rid}`)
       return
     }
     
@@ -189,7 +200,7 @@ async function handleViewReservations(event: line.PostbackEvent) {
     const { data: reservations, error } = await supabaseAdmin
       .from('reservations')
       .select(`id, start_at, duration_min, status, stores:stores(name)`) // storesは配列の可能性に注意
-      .eq('status', 'scheduled')
+      .in('status', ['scheduled', 'visit_planned'])
       .order('start_at', { ascending: true })
       .limit(3)
       .eq('customers.line_user_id', userId) as any

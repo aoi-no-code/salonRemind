@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         stores:stores(name),
         customers:customers(line_user_id)
       `)
-      .eq('status', 'scheduled')
+      .in('status', ['scheduled', 'visit_planned'])
       .gte('start_at', oneWeekBounds.startIso)
       .lt('start_at', oneWeekBounds.endIso)
       .order('start_at', { ascending: true })
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         stores:stores(name),
         customers:customers(line_user_id)
       `)
-      .eq('status', 'scheduled')
+      .in('status', ['scheduled', 'visit_planned'])
       .gte('start_at', tomorrowBounds.startIso)
       .lt('start_at', tomorrowBounds.endIso)
       .order('start_at', { ascending: true })

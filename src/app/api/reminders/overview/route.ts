@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         customers:customers(display_name)
       `)
       .eq('store_id', storeId)
-      .eq('status', 'scheduled')
+      .in('status', ['scheduled', 'visit_planned'])
       .gte('start_at', now.toISOString())
       .order('start_at', { ascending: true })
 
