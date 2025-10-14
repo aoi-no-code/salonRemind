@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         duration_min,
         status,
         note,
-        stores!inner(name),
+        stores!inner(name, phone_number),
         customers!inner(line_user_id)
       `)
       .eq('customers.line_user_id', validatedQuery.lineUserId)
@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
         durationMin: reservation.duration_min,
         status: reservation.status,
         note: reservation.note,
-        storeName: storeRel?.name
+        storeName: storeRel?.name,
+        storePhoneNumber: storeRel?.phone_number || null
       }
     }) || []
     

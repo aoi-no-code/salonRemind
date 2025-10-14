@@ -10,6 +10,7 @@ interface Reservation {
   status: 'scheduled' | 'cancelled' | 'completed' | 'change_requested'
   note?: string
   storeName: string
+  storePhoneNumber?: string | null
 }
 
 const statusLabels = {
@@ -32,6 +33,15 @@ export default function LiffPage() {
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [working, setWorking] = useState<string | null>(null)
+  const [confirm, setConfirm] = useState<{
+    type: 'change' | 'cancel'
+    reservation: Reservation
+  } | null>(null)
+  const [info, setInfo] = useState<{
+    title: string
+    message: string
+    tel?: string | null
+  } | null>(null)
 
   useEffect(() => {
     initializeLiff()
@@ -179,27 +189,7 @@ export default function LiffPage() {
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <button
                       disabled={working === reservation.id || reservation.status !== 'scheduled' || !userId}
-                      onClick={async () => {
-                        if (!userId) return
-                        setWorking(reservation.id)
-                        try {
-                          const res = await fetch('/api/liff/reservations/change', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ reservationId: reservation.id, lineUserId: userId })
-                          })
-                          const data = await res.json()
-                          if (res.ok && data.success) {
-                            setReservations((prev) => prev.map((r) => r.id === reservation.id ? { ...r, status: 'change_requested' } as Reservation : r))
-                          } else {
-                            alert(data.error || '変更希望の送信に失敗しました。')
-                          }
-                        } catch (e) {
-                          alert('変更希望の送信に失敗しました。')
-                        } finally {
-                          setWorking(null)
-                        }
-                      }}
+                      onClick={() => setConfirm({ type: 'change', reservation })}
                       className={`w-full py-2 rounded-lg text-sm font-semibold ${
                         reservation.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-100 text-gray-400'
                       }`}
@@ -209,28 +199,7 @@ export default function LiffPage() {
 
                     <button
                       disabled={working === reservation.id || reservation.status !== 'scheduled' || !userId}
-                      onClick={async () => {
-                        if (!userId) return
-                        if (!confirm('この予約をキャンセルしますか？')) return
-                        setWorking(reservation.id)
-                        try {
-                          const res = await fetch('/api/liff/reservations/cancel', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ reservationId: reservation.id, lineUserId: userId })
-                          })
-                          const data = await res.json()
-                          if (res.ok && data.success) {
-                            setReservations((prev) => prev.map((r) => r.id === reservation.id ? { ...r, status: 'cancelled' } as Reservation : r))
-                          } else {
-                            alert(data.error || 'キャンセルに失敗しました。')
-                          }
-                        } catch (e) {
-                          alert('キャンセルに失敗しました。')
-                        } finally {
-                          setWorking(null)
-                        }
-                      }}
+                      onClick={() => setConfirm({ type: 'cancel', reservation })}
                       className={`w-full py-2 rounded-lg text-sm font-semibold ${
                         reservation.status === 'scheduled' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-400'
                       }`}
@@ -243,6 +212,94 @@ export default function LiffPage() {
             </div>
           )}
         </div>
+
+        {/* 確認モーダル */}
+        {confirm && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg w-[88%] max-w-md p-5">
+              <div className="text-lg font-semibold text-gray-900 mb-2">
+                {confirm.type === 'change' ? '変更を希望しますか？' : 'この予約をキャンセルしますか？'}
+              </div>
+              <div className="text-sm text-gray-600 mb-5">
+                {confirm.type === 'change'
+                  ? '変更希望を送信すると店舗からご連絡いたします。'
+                  : 'キャンセルは元に戻せません。'}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setConfirm(null)}
+                  className="w-full py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                >
+                  いいえ
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!userId) return
+                    const { reservation, type } = confirm
+                    setWorking(reservation.id)
+                    try {
+                      const endpoint = type === 'change' ? '/api/liff/reservations/change' : '/api/liff/reservations/cancel'
+                      const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reservationId: reservation.id, lineUserId: userId })
+                      })
+                      const data = await res.json()
+                      if (res.ok && data.success) {
+                        setReservations((prev) => prev.map((r) => {
+                          if (r.id !== reservation.id) return r
+                          return { ...r, status: type === 'change' ? 'change_requested' : 'cancelled' } as Reservation
+                        }))
+                        setConfirm(null)
+                        if (type === 'change') {
+                          setInfo({
+                            title: '変更希望を受け付けました',
+                            message: 'お手数ですが店舗までお電話ください。',
+                            tel: reservation.storePhoneNumber || null
+                          })
+                        }
+                      } else {
+                        alert(data.error || '処理に失敗しました。')
+                      }
+                    } catch (e) {
+                      alert('処理に失敗しました。')
+                    } finally {
+                      setWorking(null)
+                    }
+                  }}
+                  className={`w-full py-2 rounded-lg text-sm font-semibold ${
+                    confirm.type === 'change' ? 'bg-yellow-600 text-white hover:bg-yellow-700' : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  はい
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 案内モーダル（電話番号表示） */}
+        {info && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg w-[88%] max-w-md p-5 text-center">
+              <div className="text-lg font-semibold text-gray-900 mb-2">{info.title}</div>
+              <div className="text-sm text-gray-700 mb-5">{info.message}</div>
+              {info.tel ? (
+                <a href={`tel:${info.tel}`} className="block w-full py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 mb-3">
+                  {info.tel} に電話する
+                </a>
+              ) : (
+                <div className="text-xs text-gray-500 mb-3">電話番号が見つかりませんでした。店舗までご確認ください。</div>
+              )}
+              <button
+                onClick={() => setInfo(null)}
+                className="w-full py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* フッター */}
         <div className="bg-gray-100 p-4 text-center text-xs text-gray-600">
