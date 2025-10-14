@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatJst } from '@/lib/time'
+
+type NextReservation = {
+  id: string
+  startAt: string
+  durationMin: number
+  storeName: string
+  note?: string
+}
 
 export default function LiffMyPage() {
   const router = useRouter()
@@ -9,6 +18,8 @@ export default function LiffMyPage() {
   const [error, setError] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>('')
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined)
+  const [lineUserId, setLineUserId] = useState<string | null>(null)
+  const [nextReservation, setNextReservation] = useState<NextReservation | null>(null)
 
   useEffect(() => {
     initialize()
@@ -31,7 +42,6 @@ export default function LiffMyPage() {
       await (window as any).liff.init(liffConfig)
 
       const url = new URL(window.location.href)
-      // 予約一覧直リンクをサポート
       const view = url.searchParams.get('view')
       if (view === 'reservations') {
         router.replace('/liff/reservations')
@@ -51,6 +61,29 @@ export default function LiffMyPage() {
       const profile = await (window as any).liff.getProfile()
       setDisplayName(profile.displayName)
       setPictureUrl(profile.pictureUrl)
+      setLineUserId(profile.userId)
+
+      // 次回予約の取得
+      try {
+        const res = await fetch(`/api/reservations/list-mine?lineUserId=${profile.userId}`)
+        const data = await res.json()
+        if (data?.success && Array.isArray(data.reservations)) {
+          // 先頭から status=scheduled を優先
+          const upcoming = (data.reservations as any[]).find((r) => r.status === 'scheduled')
+          if (upcoming) {
+            setNextReservation({
+              id: upcoming.id,
+              startAt: upcoming.startAt,
+              durationMin: upcoming.durationMin,
+              storeName: upcoming.storeName,
+              note: upcoming.note,
+            })
+          }
+        }
+      } catch (e) {
+        console.warn('次回予約取得に失敗しました:', e)
+      }
+
       setLoading(false)
     } catch (e) {
       console.error('LIFF init error:', e)
@@ -91,7 +124,7 @@ export default function LiffMyPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 max-w-md w-[88%] text-center">
-        <div className="flex flex-col items-center mb-4">
+        <div className="flex flex-col items-center mb-5">
           {pictureUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={pictureUrl} alt="avatar" className="w-16 h-16 rounded-full mb-3" />
@@ -106,7 +139,23 @@ export default function LiffMyPage() {
           )}
         </div>
 
-        <div className="space-y-3 mt-4">
+        {/* 次回予約サマリー */}
+        <div className="text-left bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5">
+          <div className="text-sm text-gray-500 mb-1">次回予約</div>
+          {nextReservation ? (
+            <div>
+              <div className="font-semibold text-gray-900 mb-1">{nextReservation.storeName}</div>
+              <div className="text-gray-700 text-sm">{formatJst(nextReservation.startAt)} 〜 {nextReservation.durationMin}分</div>
+              {nextReservation.note && (
+                <div className="text-gray-600 text-xs mt-2">備考: {nextReservation.note}</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-gray-600 text-sm">次回予約はありません</div>
+          )}
+        </div>
+
+        <div className="space-y-3">
           <button
             onClick={() => router.push('/liff/reservations')}
             className="w-full bg-green-600 text-white py-3 rounded-lg text-base font-semibold hover:bg-green-700"
