@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
     
-    // 店舗情報を取得
+    // 店舗情報を取得（Flex用に住所・電話も取得）
     const { data: store, error: storeError } = await supabaseAdmin
       .from('stores')
-      .select('name')
+      .select('name, address, phone_number')
       .eq('id', validatedData.storeId)
       .single()
     
@@ -129,40 +129,88 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
     
-    // LINE通知送信（顧客にLINEユーザーIDが登録されている場合）
+    // LINE通知送信（顧客にLINEユーザーIDが登録されている場合）: 連携確定時と同じFlexに統一
     if (customer.line_user_id) {
-      try {
-        const formatDateTime = (s: string) => {
-          const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?$/)
-          if (m) {
-            const [_, y, mo, d, hh, mm] = m
-            const weekdayIdx = new Date(`${y}-${mo}-${d}T00:00:00Z`).getUTCDay()
-            const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-            const wk = weekdays[weekdayIdx]
-            return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
-          }
-          const date = new Date(s)
-          const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000)
-          const y = jst.getFullYear()
-          const mo = String(jst.getMonth() + 1).padStart(2, '0')
-          const d = String(jst.getDate()).padStart(2, '0')
-          const hh = String(jst.getHours()).padStart(2, '0')
-          const mm = String(jst.getMinutes()).padStart(2, '0')
+      const formatDateTime = (s: string) => {
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?$/)
+        if (m) {
+          const [_, y, mo, d, hh, mm] = m
+          const weekdayIdx = new Date(`${y}-${mo}-${d}T00:00:00Z`).getUTCDay()
           const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-          const wk = weekdays[jst.getDay()]
+          const wk = weekdays[weekdayIdx]
           return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
         }
-        
-        const message: line.TextMessage = {
-          type: 'text',
-          text: `【予約確定】\n${formatDateTime(reservation.start_at)} に ${store.name} のご予約を承りました。\n\n予約内容:\n・時間: ${formatDateTime(reservation.start_at)}〜\n・所要時間: ${reservation.duration_min}分${reservation.note ? `\n・備考: ${reservation.note}` : ''}\n\nご来店をお待ちしております。`
+        const date = new Date(s)
+        const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000)
+        const y = jst.getFullYear()
+        const mo = String(jst.getMonth() + 1).padStart(2, '0')
+        const d = String(jst.getDate()).padStart(2, '0')
+        const hh = String(jst.getHours()).padStart(2, '0')
+        const mm = String(jst.getMinutes()).padStart(2, '0')
+        const weekdays = ['日', '月', '火', '水', '木', '金', '土']
+        const wk = weekdays[jst.getDay()]
+        return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
+      }
+
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+      const deeplinkUrl = liffId ? `https://liff.line.me/${liffId}?view=reservations` : undefined
+
+      const detailLines: string[] = []
+      if (store.name) detailLines.push(`店舗: ${store.name}`)
+      if ((store as any).address) detailLines.push(`住所: ${(store as any).address}`)
+      if ((store as any).phone_number) detailLines.push(`電話: ${(store as any).phone_number}`)
+      detailLines.push(`日時: ${formatDateTime(reservation.start_at)} 〜 ${reservation.duration_min}分`)
+
+      const flex: line.FlexMessage = {
+        type: 'flex',
+        altText: '次回予約を受け付けました',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [
+              { type: 'text', text: '次回予約を受け付けました', weight: 'bold', size: 'md' },
+              ...(detailLines.length > 0
+                ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
+                : []),
+              { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              deeplinkUrl
+                ? { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: deeplinkUrl } }
+                : { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: 'https://liff.line.me' } },
+            ]
+          }
         }
-        
-        await lineClient.pushMessage(customer.line_user_id, message)
+      }
+
+      try {
+        await lineClient.pushMessage(customer.line_user_id, flex)
         console.log(`予約確定通知送信完了: ${customer.line_user_id}`)
-      } catch (lineError) {
+      } catch (lineError: any) {
         console.error('LINE通知送信エラー:', lineError)
-        // LINE通知失敗は予約作成成功に影響しない
+        // 友だち未追加などでPushに失敗 → アウトボックスにpending保存
+        try {
+          await supabaseAdmin
+            .from('line_outbox')
+            .insert({
+              customer_id: customer.id,
+              reservation_id: reservation.id,
+              line_user_id: customer.line_user_id,
+              message: flex,
+              status: 'pending'
+            })
+        } catch (outboxError) {
+          console.error('line_outbox への保存エラー:', outboxError)
+        }
+        // 通知失敗は予約作成成功に影響させない
       }
     }
     

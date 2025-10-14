@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { lineClient } from '@/lib/line'
+import { formatJst } from '@/lib/time'
 import * as line from '@line/bot-sdk'
 import { z } from 'zod'
 
@@ -34,7 +35,14 @@ export async function POST(request: NextRequest) {
     
     for (const event of events) {
       if (event.type === 'postback') {
-        await handlePostback(event)
+        const dataStr = event.postback?.data || ''
+        if (dataStr.includes('action=view_reservations') || dataStr.includes('menu=reservations')) {
+          await handleViewReservations(event)
+        } else {
+          await handlePostback(event)
+        }
+      } else if (event.type === 'follow') {
+        await handleFollow(event)
       }
     }
     
@@ -149,6 +157,112 @@ async function handlePostback(event: line.PostbackEvent) {
     } catch (replyError) {
       console.error('返信送信エラー:', replyError)
     }
+  }
+}
+
+async function handleFollow(event: line.FollowEvent) {
+  try {
+    const userId = event.source.userId
+    if (!userId) {
+      console.error('User ID not found in follow event')
+      return
+    }
+
+    // 未配信の保留を取得
+    const { data: pendings, error } = await supabaseAdmin
+      .from('line_outbox')
+      .select('id, message')
+      .eq('line_user_id', userId)
+      .eq('status', 'pending')
+
+    if (error) {
+      console.error('line_outbox取得エラー:', error)
+      return
+    }
+
+    // ウェルカムメッセージ
+    try {
+      await lineClient.pushMessage(userId, {
+        type: 'text',
+        text: '友だち追加ありがとうございます。直近のご予約情報をお送りします。'
+      } as any)
+    } catch (welcomeError) {
+      console.error('welcome push 失敗:', welcomeError)
+    }
+
+    if (!pendings || pendings.length === 0) return
+
+    for (const p of pendings) {
+      try {
+        await lineClient.pushMessage(userId, (p as any).message)
+        await supabaseAdmin
+          .from('line_outbox')
+          .update({ status: 'sent', sent_at: new Date().toISOString(), last_error: null })
+          .eq('id', (p as any).id)
+      } catch (e: any) {
+        const errorText = typeof e?.message === 'string' ? e.message : JSON.stringify(e)
+        await supabaseAdmin
+          .from('line_outbox')
+          .update({ status: 'failed', last_error: errorText, attempted_at: new Date().toISOString() })
+          .eq('id', (p as any).id)
+      }
+    }
+  } catch (err) {
+    console.error('Follow処理エラー:', err)
+  }
+}
+
+async function handleViewReservations(event: line.PostbackEvent) {
+  try {
+    const userId = event.source.userId
+    if (!userId) return
+
+    // 直近の予約を3件まで取得
+    const { data: reservations, error } = await supabaseAdmin
+      .from('reservations')
+      .select(`id, start_at, duration_min, status, stores:stores(name)`) // storesは配列の可能性に注意
+      .eq('status', 'scheduled')
+      .order('start_at', { ascending: true })
+      .limit(3)
+      .eq('customers.line_user_id', userId) as any
+
+    if (error) {
+      console.error('予約取得エラー(view_reservations):', error)
+      await sendReply(event.replyToken, '予約情報の取得に失敗しました。')
+      return
+    }
+
+    if (!reservations || reservations.length === 0) {
+      await sendReply(event.replyToken, '現在、今後のご予約はありません。')
+      return
+    }
+
+    const bubbles = (reservations as any[]).map((r) => {
+      const storeRel = Array.isArray(r.stores) ? r.stores[0] : r.stores
+      return {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            { type: 'text', text: storeRel?.name || '店舗', weight: 'bold', size: 'md' },
+            { type: 'text', text: `${formatJst(r.start_at)} 〜 ${r.duration_min}分`, size: 'sm', color: '#333333', wrap: true }
+          ]
+        }
+      } as any
+    })
+
+    const message: any = {
+      type: 'flex',
+      altText: 'ご予約一覧',
+      contents: bubbles.length === 1 ? bubbles[0] : { type: 'carousel', contents: bubbles }
+    }
+
+    await lineClient.pushMessage(userId, message)
+  } catch (e) {
+    console.error('handleViewReservations error:', e)
+    try { await sendReply(event.replyToken, 'エラーが発生しました。') } catch {}
   }
 }
 
