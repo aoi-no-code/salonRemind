@@ -164,13 +164,6 @@ export default function LiffMyPage() {
           </button>
 
           <button
-            onClick={() => router.push('/liff/link')}
-            className="w-full bg-white text-blue-700 border border-blue-200 py-3 rounded-lg text-base font-semibold hover:bg-blue-50"
-          >
-            友だち連携・再設定
-          </button>
-
-          <button
             onClick={() => {
               try { (window as any).liff?.closeWindow?.() } catch {}
             }}
