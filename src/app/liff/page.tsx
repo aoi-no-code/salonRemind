@@ -188,39 +188,59 @@ export default function LiffPage() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <button
-                      disabled={working === reservation.id || !['scheduled','visit_planned'].includes(reservation.status) || !userId}
-                      onClick={() => setConfirm({ type: 'change', reservation })}
-                      className={`w-full py-2 rounded-lg text-sm font-semibold ${
-                        reservation.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      変更を希望
-                    </button>
+                  {/* アクション（ステータス別） */}
+                  {(['scheduled','visit_planned'] as Array<Reservation['status']>).includes(reservation.status) && (
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        disabled={working === reservation.id || !userId}
+                        onClick={() => setConfirm({ type: 'change', reservation })}
+                        className={`w-full py-2 rounded-lg text-sm font-semibold ${
+                          working === reservation.id || !userId ? 'bg-gray-100 text-gray-400' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                        }`}
+                      >
+                        変更を希望
+                      </button>
 
-                    <button
-                      disabled={working === reservation.id || !['scheduled','visit_planned'].includes(reservation.status) || !userId}
-                      onClick={() => setConfirm({ type: 'cancel', reservation })}
-                      className={`w-full py-2 rounded-lg text-sm font-semibold ${
-                        reservation.status === 'scheduled' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      キャンセル
-                    </button>
-                  </div>
+                      <button
+                        disabled={working === reservation.id || !userId}
+                        onClick={() => setConfirm({ type: 'cancel', reservation })}
+                        className={`w-full py-2 rounded-lg text-sm font-semibold ${
+                          working === reservation.id || !userId ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  )}
 
-                  {reservation.storePhoneNumber && (
+                  {reservation.status === 'change_requested' && (
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div />
+                      <button
+                        disabled={working === reservation.id || !userId}
+                        onClick={() => setConfirm({ type: 'cancel', reservation })}
+                        className={`w-full py-2 rounded-lg text-sm font-semibold ${
+                          working === reservation.id || !userId ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 電話リンクと注意書きは変更希望時のみ表示 */}
+                  {reservation.status === 'change_requested' && reservation.storePhoneNumber && (
                     <div className="mt-3 text-sm">
                       <a href={`tel:${reservation.storePhoneNumber}`} className="text-blue-700 underline">
                         店舗に電話する（{reservation.storePhoneNumber}）
                       </a>
                     </div>
                   )}
-
-                  <div className="mt-2 text-xs text-gray-500">
-                    ※ 予約日が近づいてもお電話が確認できない場合、店舗からご連絡する場合があります。
-                  </div>
+                  {reservation.status === 'change_requested' && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      ※ 予約日が近づいてもお電話が確認できない場合、店舗からご連絡する場合があります。
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -234,19 +254,8 @@ export default function LiffPage() {
               <div className="text-lg font-semibold text-gray-900 mb-2">
                 {confirm.type === 'change' ? '変更を希望しますか？' : 'この予約をキャンセルしますか？'}
               </div>
-              <div className="text-sm text-gray-600 mb-4">
-                {confirm.type === 'change'
-                  ? '変更希望を送信すると店舗からご連絡いたします。基本的にはお客さまからお電話ください。'
-                  : 'キャンセルは元に戻せません。'}
-              </div>
-              {confirm.type === 'change' && (
-                confirm.reservation.storePhoneNumber ? (
-                  <a href={`tel:${confirm.reservation.storePhoneNumber}`} className="block w-full py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 mb-4 text-center">
-                    {confirm.reservation.storePhoneNumber} に電話する
-                  </a>
-                ) : (
-                  <div className="text-xs text-gray-500 mb-4">電話番号が見つかりませんでした。店舗までご確認ください。</div>
-                )
+              {confirm.type === 'cancel' && (
+                <div className="text-sm text-gray-600 mb-4">キャンセルは元に戻せません。</div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <button
