@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       sentTomorrowSet = new Set((sentLogs1d || []).filter((l: any) => l.status === 'sent').map((l: any) => l.reservation_id))
     }
 
-    // 1週間前リマインド送信（ボタン付き）
+    // 1週間前リマインド送信（来店予定ボタンのみ）
     if (oneWeekReservations && oneWeekReservations.length > 0) {
       for (const reservation of oneWeekReservations) {
         if (!reservation.line_user_id) continue
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
                   ]
                 },
                 { type: 'text', text: 'このままご来店予定でしたら、\n下のボタンから「来店予定」を押してください🌸', wrap: true, size: 'sm', margin: 'md' },
-                { type: 'text', text: '※「来店予定」が押されてない場合はこちらからご連絡する場合がございます。', wrap: true, size: 'xs', color: '#8c8c8c', margin: 'md' }
+                { type: 'text', text: '※変更やキャンセルはマイページから可能です。', wrap: true, size: 'xs', color: '#8c8c8c', margin: 'md' }
               ]
             },
             footer: {
@@ -147,26 +147,6 @@ export async function GET(request: NextRequest) {
                     type: 'postback',
                     label: '来店予定',
                     data: `remind=visit&rid=${reservation.reservation_id}`
-                  }
-                },
-                {
-                  type: 'button',
-                  style: 'secondary',
-                  margin: 'md',
-                  action: {
-                    type: 'postback',
-                    label: '時間を変更したい',
-                    data: `remind=change&rid=${reservation.reservation_id}`
-                  }
-                },
-                {
-                  type: 'button',
-                  style: 'secondary',
-                  margin: 'md',
-                  action: {
-                    type: 'postback',
-                    label: 'キャンセルしたい',
-                    data: `remind=cancel&rid=${reservation.reservation_id}`
                   }
                 }
               ]

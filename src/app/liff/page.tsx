@@ -31,6 +31,7 @@ export default function LiffPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [working, setWorking] = useState<string | null>(null)
 
   useEffect(() => {
     initializeLiff()
@@ -174,9 +175,68 @@ export default function LiffPage() {
                       </p>
                     </div>
                   )}
-                  
-                  <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
-                    💡 変更・キャンセルはリマインドのボタン、またはお電話でお願いします。
+
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <button
+                      disabled={working === reservation.id || reservation.status !== 'scheduled' || !userId}
+                      onClick={async () => {
+                        if (!userId) return
+                        setWorking(reservation.id)
+                        try {
+                          const res = await fetch('/api/liff/reservations/change', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reservationId: reservation.id, lineUserId: userId })
+                          })
+                          const data = await res.json()
+                          if (res.ok && data.success) {
+                            setReservations((prev) => prev.map((r) => r.id === reservation.id ? { ...r, status: 'change_requested' } as Reservation : r))
+                          } else {
+                            alert(data.error || '変更希望の送信に失敗しました。')
+                          }
+                        } catch (e) {
+                          alert('変更希望の送信に失敗しました。')
+                        } finally {
+                          setWorking(null)
+                        }
+                      }}
+                      className={`w-full py-2 rounded-lg text-sm font-semibold ${
+                        reservation.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      変更を希望
+                    </button>
+
+                    <button
+                      disabled={working === reservation.id || reservation.status !== 'scheduled' || !userId}
+                      onClick={async () => {
+                        if (!userId) return
+                        if (!confirm('この予約をキャンセルしますか？')) return
+                        setWorking(reservation.id)
+                        try {
+                          const res = await fetch('/api/liff/reservations/cancel', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reservationId: reservation.id, lineUserId: userId })
+                          })
+                          const data = await res.json()
+                          if (res.ok && data.success) {
+                            setReservations((prev) => prev.map((r) => r.id === reservation.id ? { ...r, status: 'cancelled' } as Reservation : r))
+                          } else {
+                            alert(data.error || 'キャンセルに失敗しました。')
+                          }
+                        } catch (e) {
+                          alert('キャンセルに失敗しました。')
+                        } finally {
+                          setWorking(null)
+                        }
+                      }}
+                      className={`w-full py-2 rounded-lg text-sm font-semibold ${
+                        reservation.status === 'scheduled' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      キャンセル
+                    </button>
                   </div>
                 </div>
               ))}
@@ -185,12 +245,8 @@ export default function LiffPage() {
         </div>
 
         {/* フッター */}
-        <div className="bg-gray-100 p-4 text-center">
-          <p className="text-xs text-gray-600">
-            予約の変更・キャンセルは<br />
-            リマインドメッセージのボタンから<br />
-            または店舗までお電話ください
-          </p>
+        <div className="bg-gray-100 p-4 text-center text-xs text-gray-600">
+          変更は「変更を希望」から受け付けます。キャンセルは「キャンセル」を押してください。
         </div>
       </div>
     </div>
