@@ -340,7 +340,7 @@ export default function LiffPage() {
 
         {/* フッター */}
         <div className="bg-gray-100 p-4 text-center text-xs text-gray-600">
-          変更は「変更を希望」から受け付けます。キャンセルは「キャンセル」を押してください。
+            その他の問い合わせなどは各店舗に直接お電話ください。
         </div>
       </div>
     </div>
