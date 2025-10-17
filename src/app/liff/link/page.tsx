@@ -73,8 +73,26 @@ export default function LiffLinkPage() {
       const profile = await window.liff.getProfile()
 
       const url = new URL(window.location.href)
-      const rid = url.searchParams.get('rid')
-      const token = url.searchParams.get('t')
+      let rid = url.searchParams.get('rid')
+      let token = url.searchParams.get('t')
+
+      // liff.state 経由のパラメータ復元（相対形式 "liff/link?..." にも対応）
+      if (!rid || !token) {
+        const rawState = url.searchParams.get('liff.state')
+        if (rawState) {
+          const normalized = rawState.startsWith('/') ? rawState : `/${rawState}`
+          try {
+            const stateUrl = new URL(normalized, window.location.origin)
+            rid = rid || stateUrl.searchParams.get('rid')
+            token = token || stateUrl.searchParams.get('t')
+            // 見た目を正規化（任意）
+            if (stateUrl.pathname === '/liff/link' && (stateUrl.searchParams.get('rid') || stateUrl.searchParams.get('t'))) {
+              window.history.replaceState(null, '', `${stateUrl.pathname}${stateUrl.search}`)
+            }
+          } catch {}
+        }
+      }
+
       if (!rid || !token) {
         setMessage('不正なリンクです。')
         return
