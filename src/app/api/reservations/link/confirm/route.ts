@@ -153,8 +153,11 @@ export async function POST(request: NextRequest) {
 
     // 連携完了のPush（Flex）を送信
     try {
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-      const deeplinkUrl = liffId ? `https://liff.line.me/${liffId}?view=reservations` : undefined
+      // マイページ用のLIFFにディープリンクし、予約一覧を確実に開く
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE
+      const deeplinkUrl = liffId
+        ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent('/liff/reservations')}`
+        : undefined
 
       const storeRel: any = Array.isArray((reservation as any).stores)
         ? (reservation as any).stores[0]
