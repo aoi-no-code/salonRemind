@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '権限がありません。' }, { status: 403 })
     }
 
-    // 状態チェック（scheduled/visit_planned のみキャンセル可能）
-    if (!['scheduled', 'visit_planned'].includes((reservation as any).status)) {
+    // 状態チェック（scheduled/visit_planned/change_requested のみキャンセル可能）
+    if (!['scheduled', 'visit_planned', 'change_requested'].includes((reservation as any).status)) {
       return NextResponse.json({ error: 'この予約はキャンセルできません。' }, { status: 400 })
     }
 

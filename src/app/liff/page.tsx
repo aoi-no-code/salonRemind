@@ -49,6 +49,24 @@ export default function LiffPage() {
     initializeLiff()
   }, [])
 
+  const isWithin24Hours = (startAtIso: string): boolean => {
+    const startMs = new Date(startAtIso).getTime()
+    const diffMs = startMs - Date.now()
+    return diffMs < 24 * 60 * 60 * 1000
+  }
+
+  const handleCancelClick = (reservation: Reservation) => {
+    if (isWithin24Hours(reservation.startAt)) {
+      setInfo({
+        title: 'キャンセルはお電話で承ります',
+        message: '予約時間の24時間前を過ぎているため、キャンセルは店舗へのお電話のみで承ります。',
+        tel: reservation.storePhoneNumber || null
+      })
+      return
+    }
+    setConfirm({ type: 'cancel', reservation })
+  }
+
   const initializeLiff = async () => {
     try {
       // LIFF初期化
@@ -201,9 +219,9 @@ export default function LiffPage() {
                         変更を希望
                       </button>
 
-                      <button
-                        disabled={working === reservation.id || !userId}
-                        onClick={() => setConfirm({ type: 'cancel', reservation })}
+                    <button
+                      disabled={working === reservation.id || !userId}
+                      onClick={() => handleCancelClick(reservation)}
                         className={`w-full py-2 rounded-lg text-sm font-semibold ${
                           working === reservation.id || !userId ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-800 hover:bg-red-200'
                         }`}
@@ -223,7 +241,7 @@ export default function LiffPage() {
                       </button>
                       <button
                         disabled={working === reservation.id || !userId}
-                        onClick={() => setConfirm({ type: 'cancel', reservation })}
+                        onClick={() => handleCancelClick(reservation)}
                         className={`w-full py-2 rounded-lg text-sm font-semibold ${
                           working === reservation.id || !userId ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-800 hover:bg-red-200'
                         }`}

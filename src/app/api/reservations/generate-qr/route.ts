@@ -46,7 +46,9 @@ export async function POST(request: NextRequest) {
     if (!liffId) {
       return NextResponse.json({ error: 'NEXT_PUBLIC_LIFF_ID が未設定です。' }, { status: 500 })
     }
-    const liffUrl = `https://liff.line.me/${liffId}?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(linkToken)}`
+    // 方式A: liff.state を用いて必ず /liff/link に遷移させる
+    const statePath = `/liff/link?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(linkToken)}`
+    const liffUrl = `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(statePath)}`
 
     const pngBuffer = await QRCode.toBuffer(liffUrl, { type: 'png', width: 600, errorCorrectionLevel: 'M' })
 
