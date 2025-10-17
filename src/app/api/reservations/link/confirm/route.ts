@@ -155,8 +155,10 @@ export async function POST(request: NextRequest) {
     try {
       // マイページ用のLIFFにディープリンクし、予約一覧を確実に開く
       const liffId = process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE
+      // MYPAGEのトップに state で view=reservations を渡し、クライアント側で /liff/reservations へ遷移
+      const statePath = '/liff/mypage?view=reservations'
       const deeplinkUrl = liffId
-        ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent('/liff/reservations')}`
+        ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(statePath)}`
         : undefined
 
       const storeRel: any = Array.isArray((reservation as any).stores)
