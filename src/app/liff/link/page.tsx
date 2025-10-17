@@ -49,9 +49,18 @@ export default function LiffLinkPage() {
         setDebugInfo({ inClient, isLoggedIn, ua: 'n/a' })
       }
 
-      // ブラウザ(アプリ外)で未ログインのときだけログイン。クエリは保持
+      // ブラウザ(アプリ外)で未ログインのときだけログイン。
+      // LINE側のコールバックURLが /liff/mypage の場合に合わせて、
+      // rid/t を保持したまま /liff/mypage に戻す
       if (!inClient && !isLoggedIn) {
-        const redirectUri = new URL(window.location.href).toString()
+        const current = new URL(window.location.href)
+        const ridForLogin = current.searchParams.get('rid')
+        const tokenForLogin = current.searchParams.get('t')
+        const base = `${current.origin}/liff/mypage`
+        const qs = ridForLogin && tokenForLogin
+          ? `?rid=${encodeURIComponent(ridForLogin)}&t=${encodeURIComponent(tokenForLogin)}`
+          : ''
+        const redirectUri = `${base}${qs}`
         window.liff.login({
           scope: ['openid', 'profile'],
           prompt: 'consent',

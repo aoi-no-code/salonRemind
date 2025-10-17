@@ -63,6 +63,32 @@ export default function LiffMyPage() {
       setPictureUrl(profile.pictureUrl)
       setLineUserId(profile.userId)
 
+      // rid/t があれば予約連携を確定（/liff/link と同等の処理）
+      try {
+        const rid = url.searchParams.get('rid')
+        const token = url.searchParams.get('t')
+        if (rid && token) {
+          const res = await fetch('/api/reservations/link/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reservationId: rid, token, lineUserId: profile.userId }),
+          })
+          const data = await res.json()
+          if (!(res.ok && data?.ok)) {
+            console.warn('連携確定に失敗:', data)
+          }
+          // URLから連携用クエリを除去
+          try {
+            const cleaned = new URL(window.location.href)
+            cleaned.searchParams.delete('rid')
+            cleaned.searchParams.delete('t')
+            window.history.replaceState(null, '', cleaned.toString())
+          } catch {}
+        }
+      } catch (e) {
+        console.warn('連携確定処理エラー:', e)
+      }
+
       // 次回予約の取得
       try {
         const res = await fetch(`/api/reservations/list-mine?lineUserId=${profile.userId}`)
