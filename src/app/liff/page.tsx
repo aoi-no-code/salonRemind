@@ -76,7 +76,7 @@ export default function LiffPage() {
 
         // 外ブラウザ時のみ withLoginOnExternalBrowser を付与
         const liffConfig: { liffId: string; withLoginOnExternalBrowser?: boolean } = {
-          liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+          liffId: process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE!,
         }
         if (!inClient) {
           liffConfig.withLoginOnExternalBrowser = true
@@ -84,6 +84,30 @@ export default function LiffPage() {
         await window.liff.init(liffConfig)
 
         const isLoggedIn = window.liff.isLoggedIn()
+
+        // liff.state が付与されていれば、そのパスへ遷移（QR深リンクの確実化）
+        try {
+          const stateUrl = new URL(window.location.href)
+          const liffState = stateUrl.searchParams.get('liff.state')
+          if (liffState && typeof liffState === 'string') {
+            // 絶対/相対ともに対応。外部は弾き、同一オリジン内のみ
+            if (liffState.startsWith('/')) {
+              window.location.replace(liffState)
+              return
+            }
+          }
+        } catch {}
+
+        // rid/t が付いていたら、連携専用ページに転送（どの入口でも確実に連携処理へ）
+        try {
+          const redirectCheckUrl = new URL(window.location.href)
+          const ridParam = redirectCheckUrl.searchParams.get('rid')
+          const tParam = redirectCheckUrl.searchParams.get('t')
+          if (ridParam && tParam) {
+            window.location.replace(`/liff/link?rid=${encodeURIComponent(ridParam)}&t=${encodeURIComponent(tParam)}`)
+            return
+          }
+        } catch {}
 
         if (isLoggedIn) {
           const profile = await window.liff.getProfile()
@@ -105,7 +129,21 @@ export default function LiffPage() {
 
           await loadReservations(profile.userId)
         } else if (!inClient && !isLoggedIn) {
-          window.liff.login({ scope: ['openid', 'profile'], prompt: 'consent', redirectUri: new URL(window.location.href).toString() })
+          // LINEログインのコールバックURL設定に合わせ、/liff/mypage に統一
+          try {
+            const cur = new URL(window.location.href)
+            const base = `${cur.origin}/liff/mypage`
+            const keep = new URLSearchParams()
+            const keepKeys = ['rid', 't', 'view', 'link']
+            for (const k of keepKeys) {
+              const v = cur.searchParams.get(k)
+              if (v) keep.set(k, v)
+            }
+            const redirectUri = keep.toString() ? `${base}?${keep.toString()}` : base
+            window.liff.login({ scope: ['openid', 'profile'], prompt: 'consent', redirectUri })
+          } catch {
+            window.liff.login({ scope: ['openid', 'profile'], prompt: 'consent' })
+          }
         }
       } else {
         // 開発環境でのフォールバック

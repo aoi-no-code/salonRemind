@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
     const linkToken = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID_LINK
     if (!liffId) {
-      return NextResponse.json({ error: 'NEXT_PUBLIC_LIFF_ID が未設定です。' }, { status: 500 })
+      return NextResponse.json({ error: 'NEXT_PUBLIC_LIFF_ID_LINK が未設定です。' }, { status: 500 })
     }
     // 方式A: liff.state を用いて必ず /liff/link に遷移させる
     const statePath = `/liff/link?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(linkToken)}`
@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
       console.warn('[generate-qr] reservation update warning (ignored):', updateError)
     }
 
-    return NextResponse.json({ qrUrl, linkToken, linkExpiresAt: expiresAt.toISOString() })
+    // デバッグ容易化のため、埋め込み先の LIFF URL も返す
+    return NextResponse.json({ qrUrl, liffUrl, linkToken, linkExpiresAt: expiresAt.toISOString() })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: '入力が不正です', details: error.issues }, { status: 400 })

@@ -33,7 +33,7 @@ export default function LiffLinkPage() {
 
       // 外ブラウザ時のみ withLoginOnExternalBrowser を有効化
       const liffConfig: { liffId: string; withLoginOnExternalBrowser?: boolean } = {
-        liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+        liffId: process.env.NEXT_PUBLIC_LIFF_ID_LINK!,
       }
       if (!inClient) {
         liffConfig.withLoginOnExternalBrowser = true
@@ -56,11 +56,12 @@ export default function LiffLinkPage() {
         const current = new URL(window.location.href)
         const ridForLogin = current.searchParams.get('rid')
         const tokenForLogin = current.searchParams.get('t')
-        const base = `${current.origin}/liff/mypage`
-        const qs = ridForLogin && tokenForLogin
-          ? `?rid=${encodeURIComponent(ridForLogin)}&t=${encodeURIComponent(tokenForLogin)}`
-          : ''
-        const redirectUri = `${base}${qs}`
+        try {
+          if (ridForLogin && tokenForLogin) {
+            sessionStorage.setItem('reserve_remind_link_params', JSON.stringify({ rid: ridForLogin, t: tokenForLogin }))
+          }
+        } catch {}
+        const redirectUri = `${current.origin}/liff/mypage`
         window.liff.login({
           scope: ['openid', 'profile'],
           prompt: 'consent',

@@ -36,12 +36,21 @@ export default function LiffMyPage() {
 
       const inClient = (window as any).liff.isInClient ? (window as any).liff.isInClient() : true
       const liffConfig: { liffId: string; withLoginOnExternalBrowser?: boolean } = {
-        liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+        liffId: process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE!,
       }
       if (!inClient) liffConfig.withLoginOnExternalBrowser = true
       await (window as any).liff.init(liffConfig)
 
       const url = new URL(window.location.href)
+
+      // liff.state=... がURLに残っていれば、その相対パスに移動
+      try {
+        const liffState = url.searchParams.get('liff.state')
+        if (liffState && liffState.startsWith('/')) {
+          window.location.replace(liffState)
+          return
+        }
+      } catch {}
       const view = url.searchParams.get('view')
       if (view === 'reservations') {
         router.replace('/liff/reservations')
@@ -65,8 +74,19 @@ export default function LiffMyPage() {
 
       // rid/t があれば予約連携を確定（/liff/link と同等の処理）
       try {
-        const rid = url.searchParams.get('rid')
-        const token = url.searchParams.get('t')
+        let rid = url.searchParams.get('rid')
+        let token = url.searchParams.get('t')
+        // ログイン経由の戻りではクエリが落ちることがあるため sessionStorage から復元
+        try {
+          if (!(rid && token)) {
+            const raw = sessionStorage.getItem('reserve_remind_link_params')
+            if (raw) {
+              const saved = JSON.parse(raw)
+              rid = rid || saved?.rid
+              token = token || saved?.t
+            }
+          }
+        } catch {}
         if (rid && token) {
           const res = await fetch('/api/reservations/link/confirm', {
             method: 'POST',
@@ -83,6 +103,7 @@ export default function LiffMyPage() {
             cleaned.searchParams.delete('rid')
             cleaned.searchParams.delete('t')
             window.history.replaceState(null, '', cleaned.toString())
+            sessionStorage.removeItem('reserve_remind_link_params')
           } catch {}
         }
       } catch (e) {
