@@ -5,20 +5,50 @@ import { useEffect } from 'react'
 export default function LiffLinkCatchAllPage() {
   useEffect(() => {
     try {
-      const href = window.location.href
-      const path = window.location.pathname // 例: /liff/link/liff/link%3Frid=...%26t=...
-      const after = path.split('/liff/link/')[1] || ''
-      const decoded = decodeURIComponent(after) // 例: liff/link?rid=...&t=...
+      const u = new URL(window.location.href)
+      // 1) 通常のクエリから取得
+      let rid = u.searchParams.get('rid') || undefined
+      let t = u.searchParams.get('t') || undefined
 
-      // 想定誤形式: liff/link?rid=...&t=...
-      if (decoded.startsWith('liff/link')) {
-        const qIndex = decoded.indexOf('?')
-        const query = qIndex >= 0 ? decoded.slice(qIndex) : ''
-        window.location.replace(`/liff/link${query}`)
+      // 2) liff.state から復元
+      if (!(rid && t)) {
+        const rawState = u.searchParams.get('liff.state')
+        if (rawState) {
+          const normalized = rawState.startsWith('/') ? rawState : `/${rawState}`
+          try {
+            const stateUrl = new URL(normalized, u.origin)
+            rid = rid || stateUrl.searchParams.get('rid') || undefined
+            t = t || stateUrl.searchParams.get('t') || undefined
+          } catch {}
+        }
+      }
+
+      // 3) パスにエンコードされた形から復元
+      if (!(rid && t)) {
+        const after = u.pathname.split('/liff/link/')[1] || ''
+        if (after) {
+          let decoded = decodeURIComponent(after)
+          try { decoded = decodeURIComponent(decoded) } catch {}
+          // 例: liff/link?rid=...&t=... / ?rid=...&t=... / rid=...&t=...
+          if (decoded.startsWith('liff/link')) {
+            decoded = decoded.slice('liff/link'.length)
+          }
+          if (decoded.startsWith('/')) decoded = decoded.slice(1)
+          if (decoded.startsWith('?')) decoded = decoded.slice(1)
+          try {
+            const params = new URLSearchParams(decoded)
+            rid = rid || params.get('rid') || undefined
+            t = t || params.get('t') || undefined
+          } catch {}
+        }
+      }
+
+      if (rid && t) {
+        window.location.replace(`/liff/link?rid=${encodeURIComponent(rid)}&t=${encodeURIComponent(t)}`)
         return
       }
 
-      // それ以外は正規の連携ページへフォールバック
+      // それ以外は正規の連携ページへフォールバック（エラーはページ側で表示）
       window.location.replace('/liff/link')
     } catch {
       window.location.replace('/liff/link')
