@@ -152,8 +152,11 @@ export async function POST(request: NextRequest) {
         return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
       }
 
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-      const deeplinkUrl = liffId ? `https://liff.line.me/${liffId}?view=reservations` : undefined
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE || process.env.NEXT_PUBLIC_LIFF_ID
+      const statePath = '/liff/mypage?view=reservations'
+      const deeplinkUrl = liffId
+        ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(statePath)}`
+        : undefined
 
       const detailLines: string[] = []
       if (store.name) detailLines.push(`店舗: ${store.name}`)
