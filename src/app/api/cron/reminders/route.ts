@@ -183,16 +183,38 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // 前日リマインド送信（テキストのみ）
+    // 前日リマインド送信（7日前リマインドに似せたFlexに変更）
     if (tomorrowReservations && tomorrowReservations.length > 0) {
       for (const reservation of tomorrowReservations) {
         if (!reservation.line_user_id) continue
         if (sentTomorrowSet.has(reservation.reservation_id)) continue
         
         const message: Parameters<typeof lineClient.pushMessage>[1] = {
-          type: 'text',
-          text: `【前日リマインド】\n明日 ${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約があります。\n変更・キャンセルはリマインドのボタン、またはお電話でお願いします。`
-        }
+          type: 'flex',
+          altText: `【前日リマインド】明日 ${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約です。`,
+          contents: {
+            type: 'bubble',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: [
+                { type: 'text', text: 'こんにちは💐', size: 'md' },
+                { type: 'text', text: '明日のご予約です。', size: 'sm' },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'sm',
+                  margin: 'md',
+                  contents: [
+                    { type: 'text', text: `📍店舗：${reservation.store_name}`, wrap: true, size: 'sm' },
+                    { type: 'text', text: `🗓 ご予約日：${formatJst(reservation.start_at)}〜`, wrap: true, size: 'sm' }
+                  ]
+                },
+              ]
+            },
+          }
+        } as any
         
         try {
           await lineClient.pushMessage(reservation.line_user_id, message)
