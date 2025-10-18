@@ -149,7 +149,7 @@ export default function LiffLinkPage() {
         - LINEログインのコールバックURL → https://salon-remind.vercel.app/liff/link
         が一致していることを確認
       */}
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 max-w-md w-full text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-3">予約とLINEの連携</h1>
           <p className="text-gray-700 mb-4">{message}</p>
@@ -179,6 +179,14 @@ export default function LiffLinkPage() {
               </div>
             </div>
           )}
+          <div className="mt-6">
+            <button
+              onClick={() => { try { (window as any).liff?.closeWindow?.() } catch {} }}
+              className="inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+            >
+              閉じる
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -198,6 +206,7 @@ declare global {
       getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
       getFriendship?: () => Promise<{ friendFlag: boolean }>
       isInClient?: () => boolean
+      closeWindow?: () => void
     }
   }
 }

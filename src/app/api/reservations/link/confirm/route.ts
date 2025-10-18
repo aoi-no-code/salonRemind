@@ -152,63 +152,77 @@ export async function POST(request: NextRequest) {
     }
 
     // 連携完了のPush（Flex）を送信
-    try {
-      // マイページ用のLIFFにディープリンクし、予約一覧を確実に開く
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE
-      // MYPAGEのトップに state で view=reservations を渡し、クライアント側で /liff/reservations へ遷移
-      const statePath = '/liff/mypage?view=reservations'
-      const deeplinkUrl = liffId
-        ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(statePath)}`
-        : undefined
+    // マイページ用のLIFFにディープリンクし、予約一覧を確実に開く
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE
+    // MYPAGEのトップに state で view=reservations を渡し、クライアント側で /liff/reservations へ遷移
+    const statePath = '/liff/mypage?view=reservations'
+    const deeplinkUrl = liffId
+      ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(statePath)}`
+      : undefined
 
-      const storeRel: any = Array.isArray((reservation as any).stores)
-        ? (reservation as any).stores[0]
-        : (reservation as any).stores
-      const storeName: string | undefined = storeRel?.name
-      const storeAddress: string | undefined = storeRel?.address
-      const storePhone: string | undefined = storeRel?.phone_number
-      const startAt = reservation.start_at ? formatJst(reservation.start_at) : undefined
-      const duration = reservation.duration_min
+    const storeRel: any = Array.isArray((reservation as any).stores)
+      ? (reservation as any).stores[0]
+      : (reservation as any).stores
+    const storeName: string | undefined = storeRel?.name
+    const storeAddress: string | undefined = storeRel?.address
+    const storePhone: string | undefined = storeRel?.phone_number
+    const startAt = reservation.start_at ? formatJst(reservation.start_at) : undefined
+    const duration = reservation.duration_min
 
-      const detailLines: string[] = []
-      if (storeName) detailLines.push(`店舗: ${storeName}`)
-      if (storeAddress) detailLines.push(`住所: ${storeAddress}`)
-      if (storePhone) detailLines.push(`電話: ${storePhone}`)
-      if (startAt) detailLines.push(`日時: ${startAt} 〜 ${duration ?? ''}分`)
+    const detailLines: string[] = []
+    if (storeName) detailLines.push(`店舗: ${storeName}`)
+    if (storeAddress) detailLines.push(`住所: ${storeAddress}`)
+    if (storePhone) detailLines.push(`電話: ${storePhone}`)
+    if (startAt) detailLines.push(`日時: ${startAt} 〜 ${duration ?? ''}分`)
 
-      const flex: line.FlexMessage = {
-        type: 'flex',
-        altText: '次回予約を受け付けました',
-        contents: {
-          type: 'bubble',
-          body: {
-            type: 'box',
-            layout: 'vertical',
-            spacing: 'md',
-            contents: [
-              { type: 'text', text: '次回予約を受け付けました', weight: 'bold', size: 'md' },
-              ...(detailLines.length > 0
-                ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
-                : []),
-              { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
-            ]
-          },
-          footer: {
-            type: 'box',
-            layout: 'vertical',
-            spacing: 'sm',
-            contents: [
-              deeplinkUrl
-                ? { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: deeplinkUrl } }
-                : { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: 'https://liff.line.me' } },
-            ]
-          }
+    const flex: line.FlexMessage = {
+      type: 'flex',
+      altText: '次回予約を受け付けました',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'md',
+          contents: [
+            { type: 'text', text: '次回予約を受け付けました', weight: 'bold', size: 'md' },
+            ...(detailLines.length > 0
+              ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
+              : []),
+            { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            deeplinkUrl
+              ? { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: deeplinkUrl } }
+              : { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: 'https://liff.line.me' } },
+          ]
         }
       }
+    }
 
+    try {
       await lineClient.pushMessage(lineUserId, flex)
     } catch (pushError) {
       console.error('Push送信エラー（連携完了通知）:', pushError)
+      // Push失敗時はアウトボックスへpending保存してフォロー時に再送する
+      try {
+        await supabaseAdmin
+          .from('line_outbox')
+          .insert({
+            customer_id: reservation.customer_id,
+            reservation_id: reservation.id,
+            line_user_id: lineUserId,
+            message: flex,
+            status: 'pending'
+          })
+      } catch (outboxError) {
+        console.error('line_outbox への保存エラー（連携完了通知）:', outboxError)
+      }
       // Push失敗は致命ではないため、API自体は成功を返す
     }
 
