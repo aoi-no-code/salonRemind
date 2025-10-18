@@ -1,29 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import Link from 'next/link'
 
-type ReminderKind = '7d_before' | '1d_before'
-
-type Overview = {
-  schedule: Array<{
-    kind: ReminderKind
-    reservationId: string
-    reservationStartAt: string
-    sendAt: string
-    customerName: string | null
-  }>
-  history: Array<{
-    id: string
-    reservationId: string
-    kind: ReminderKind
-    channel: string
-    status: string
-    error: string | null
-    attemptedAt: string
-    reservationStartAt: string
-    customerName: string | null
-  }>
+type CustomerRow = {
+  customerId: string
+  customerName: string | null
+  phoneNumber: string | null
+  nextReservationAt: string | null
+  sent7d: boolean
+  sent1d: boolean
 }
 
 export default function StoreRemindersPage() {
@@ -31,12 +18,9 @@ export default function StoreRemindersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [overview, setOverview] = useState<Overview | null>(null)
-  const [remindersError, setRemindersError] = useState<string | null>(null)
-  const [remindersLoading, setRemindersLoading] = useState(false)
-
-  const [statusFilter, setStatusFilter] = useState<'all' | 'sent' | 'failed'>('all')
-  const [kindFilter, setKindFilter] = useState<'all' | ReminderKind>('all')
+  const [customers, setCustomers] = useState<CustomerRow[]>([])
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
+  const [customersError, setCustomersError] = useState<string | null>(null)
 
   useEffect(() => {
     const run = async () => {
@@ -53,27 +37,25 @@ export default function StoreRemindersPage() {
           if (res.ok) {
             setStoreName(j.storeName || null)
           }
-        } catch {
-          // 表示用なので失敗しても致命的ではない
-        }
+        } catch {}
 
-        // 概要取得
+        // 顧客別一覧
         try {
-          setRemindersLoading(true)
-          setRemindersError(null)
-          const res = await fetch('/api/reminders/overview', {
+          setLoadingCustomers(true)
+          setCustomersError(null)
+          const res = await fetch('/api/reminders/customers', {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           })
           const j = await res.json()
           if (!res.ok) {
-            setRemindersError(j.error || '通知情報の取得に失敗しました')
+            setCustomersError(j.error || '顧客一覧の取得に失敗しました')
           } else {
-            setOverview({ schedule: j.schedule || [], history: j.history || [] })
+            setCustomers(j.customers || [])
           }
         } catch (e: any) {
-          setRemindersError(e.message || '通知情報の取得時にエラーが発生しました')
+          setCustomersError(e.message || '顧客一覧の取得時にエラーが発生しました')
         } finally {
-          setRemindersLoading(false)
+          setLoadingCustomers(false)
         }
       } catch (e: any) {
         setError(e.message || 'エラーが発生しました')
@@ -83,15 +65,6 @@ export default function StoreRemindersPage() {
     }
     run()
   }, [])
-
-  const filteredHistory = useMemo(() => {
-    const items = overview?.history ?? []
-    return items.filter(i => {
-      const byStatus = statusFilter === 'all' || i.status === statusFilter
-      const byKind = kindFilter === 'all' || i.kind === kindFilter
-      return byStatus && byKind
-    })
-  }, [overview, statusFilter, kindFilter])
 
   if (loading) {
     return (
@@ -106,7 +79,7 @@ export default function StoreRemindersPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">通知の予定と履歴</h1>
+            <h1 className="text-2xl font-bold text-gray-900">通知管理</h1>
             <p className="text-gray-600 text-sm">{storeName ? `ログイン中の店舗: ${storeName}` : 'ログイン中の店舗を特定できませんでした'}</p>
           </div>
         </header>
@@ -117,87 +90,41 @@ export default function StoreRemindersPage() {
 
         <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">送信予定</h2>
-            {remindersLoading && <div className="text-sm text-gray-600">読み込み中...</div>}
+            <h2 className="text-lg font-semibold text-gray-900">顧客別</h2>
+            {loadingCustomers && <div className="text-sm text-gray-600">読み込み中...</div>}
           </div>
-          {remindersError && <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm mb-3">{remindersError}</div>}
+          {customersError && <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm mb-3">{customersError}</div>}
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-600">
-                  <th className="py-2 pr-4">送信日時</th>
-                  <th className="py-2 pr-4">種別</th>
+                  <th className="py-2 pr-4">お客様名</th>
                   <th className="py-2 pr-4">予約日時</th>
-                  <th className="py-2 pr-4">顧客</th>
-                  <th className="py-2 pr-4">予約ID</th>
+                  <th className="py-2 pr-4">一週間前</th>
+                  <th className="py-2 pr-4">前日</th>
                 </tr>
               </thead>
               <tbody>
-                {(overview?.schedule ?? []).map((s) => (
-                  <tr key={`${s.kind}-${s.reservationId}`} className="border-t border-gray-100">
-                    <td className="py-2 pr-4 text-gray-900">{new Date(s.sendAt).toLocaleString('ja-JP')}</td>
-                    <td className="py-2 pr-4">{s.kind === '7d_before' ? '1週間前' : '前日'}</td>
-                    <td className="py-2 pr-4">{new Date(s.reservationStartAt).toLocaleString('ja-JP')}</td>
-                    <td className="py-2 pr-4">{s.customerName || '-'}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{s.reservationId}</td>
-                  </tr>
-                ))}
-                {(!overview || (overview.schedule?.length ?? 0) === 0) && (
-                  <tr>
-                    <td className="py-4 text-gray-500" colSpan={5}>現在の送信予定はありません</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">送信履歴</h2>
-            <div className="flex items-center gap-2 text-sm">
-              <select className="border border-gray-300 rounded-md px-2 py-1" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
-                <option value="all">すべて</option>
-                <option value="sent">成功のみ</option>
-                <option value="failed">失敗のみ</option>
-              </select>
-              <select className="border border-gray-300 rounded-md px-2 py-1" value={kindFilter} onChange={(e) => setKindFilter(e.target.value as any)}>
-                <option value="all">全種別</option>
-                <option value="7d_before">1週間前</option>
-                <option value="1d_before">前日</option>
-              </select>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-600">
-                  <th className="py-2 pr-4">試行日時</th>
-                  <th className="py-2 pr-4">種別</th>
-                  <th className="py-2 pr-4">ステータス</th>
-                  <th className="py-2 pr-4">顧客</th>
-                  <th className="py-2 pr-4">予約日時</th>
-                  <th className="py-2 pr-4">エラー</th>
-                  <th className="py-2 pr-4">予約ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHistory.map(h => (
-                  <tr key={h.id} className="border-t border-gray-100">
-                    <td className="py-2 pr-4 text-gray-900">{new Date(h.attemptedAt).toLocaleString('ja-JP')}</td>
-                    <td className="py-2 pr-4">{h.kind === '7d_before' ? '1週間前' : '前日'}</td>
+                {customers.map((c) => (
+                  <tr key={c.customerId} className="border-t border-gray-100">
                     <td className="py-2 pr-4">
-                      <span className={`px-2 py-0.5 rounded text-xs ${h.status === 'sent' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{h.status}</span>
+                      <Link href={`/dashboard/customers/${c.customerId}`} className="text-blue-600 hover:underline">
+                        {c.customerName || '(名前未設定)'}
+                      </Link>
+                      <div className="text-xs text-gray-500">{c.phoneNumber || '-'}</div>
                     </td>
-                    <td className="py-2 pr-4">{h.customerName || '-'}</td>
-                    <td className="py-2 pr-4">{new Date(h.reservationStartAt).toLocaleString('ja-JP')}</td>
-                    <td className="py-2 pr-4 max-w-[360px] truncate" title={h.error || ''}>{h.error || '-'}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{h.reservationId}</td>
+                    <td className="py-2 pr-4">{c.nextReservationAt ? new Date(c.nextReservationAt).toLocaleString('ja-JP') : '-'}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`px-2 py-0.5 rounded text-xs border ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span className={`px-2 py-0.5 rounded text-xs border ${c.sent1d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent1d ? '済' : '-'}</span>
+                    </td>
                   </tr>
                 ))}
-                {(filteredHistory.length === 0) && (
+                {customers.length === 0 && (
                   <tr>
-                    <td className="py-4 text-gray-500" colSpan={7}>該当する履歴がありません</td>
+                    <td className="py-4 text-gray-500" colSpan={4}>対象のお客様がいません</td>
                   </tr>
                 )}
               </tbody>
