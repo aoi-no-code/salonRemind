@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
       phoneNumber: string | null
       nextReservationAt: string | null
       reservationId: string | null
+      status?: string | null
     }
 
     const perCustomer = new Map<string, CustomerRow>()
@@ -80,12 +81,14 @@ export async function GET(request: NextRequest) {
           phoneNumber: custRel?.phone_number || null,
           nextReservationAt: nextAt,
           reservationId: r.id as string,
+          status: r.status as string | null,
         })
       } else {
         // 既にあるものより早い予約があれば更新
         if (existing.nextReservationAt && nextAt < existing.nextReservationAt) {
           existing.nextReservationAt = nextAt
           existing.reservationId = r.id as string
+          existing.status = r.status as string | null
         }
       }
     }
@@ -119,6 +122,7 @@ export async function GET(request: NextRequest) {
       customerName: r.customerName,
       phoneNumber: r.phoneNumber,
       nextReservationAt: r.nextReservationAt,
+      status: r.status || 'scheduled',
       sent7d: r.reservationId ? sent7d.has(r.reservationId) : false,
       sent1d: r.reservationId ? sent1d.has(r.reservationId) : false,
     }))

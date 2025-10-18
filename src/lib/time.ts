@@ -37,6 +37,17 @@ export function formatJst(date: Date | string): string {
   return `${year}/${month}/${day}(${weekday}) ${hours}:${minutes}`
 }
 
+// MM/DD HH:mm 形式（年・曜日なし）
+export function formatJstMdHm(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  const jstDate = toJst(d)
+  const month = String(jstDate.getMonth() + 1)
+  const day = String(jstDate.getDate())
+  const hours = String(jstDate.getHours()).padStart(2, '0')
+  const minutes = String(jstDate.getMinutes()).padStart(2, '0')
+  return `${month}/${day} ${hours}:${minutes}`
+}
+
 export function getJstDate(targetDate: Date, daysOffset: number): Date {
   const jstDate = toJst(targetDate)
   const result = new Date(jstDate)

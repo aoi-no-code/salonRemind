@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import { formatJstMdHm } from '@/lib/time'
 
 type CustomerRow = {
   customerId: string
@@ -100,6 +101,7 @@ export default function StoreRemindersPage() {
                 <tr className="text-left text-gray-600">
                   <th className="py-2 pr-4">お客様名</th>
                   <th className="py-2 pr-4">予約日時</th>
+                  <th className="py-2 pr-4">ステータス</th>
                   <th className="py-2 pr-4">一週間前</th>
                   <th className="py-2 pr-4">前日</th>
                 </tr>
@@ -113,7 +115,8 @@ export default function StoreRemindersPage() {
                       </Link>
                       <div className="text-xs text-gray-500">{c.phoneNumber || '-'}</div>
                     </td>
-                    <td className="py-2 pr-4">{c.nextReservationAt ? new Date(c.nextReservationAt).toLocaleString('ja-JP') : '-'}</td>
+                    <td className="py-2 pr-4">{c.nextReservationAt ? formatJstMdHm(c.nextReservationAt) : '-'}</td>
+                    <td className="py-2 pr-4"><span className="text-xs text-gray-700 border border-gray-200 bg-gray-50 px-2 py-0.5 rounded">今後の予約</span></td>
                     <td className="py-2 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs border ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
                     </td>

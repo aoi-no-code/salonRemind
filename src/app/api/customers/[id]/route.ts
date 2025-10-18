@@ -61,4 +61,34 @@ export async function GET(request: Request, context: any) {
   }
 }
 
+export async function PATCH(request: Request, context: any) {
+  try {
+    const params = (context as any)?.params as { id: string }
+    const user = await getAuthUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const customerId = params?.id
+    const body = await request.json()
+    const updates: any = {}
+    if (typeof body.customerName === 'string') updates.display_name = body.customerName
+    if (typeof body.phoneNumber === 'string') updates.phone_number = body.phoneNumber
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No updatable fields' }, { status: 400 })
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('customers')
+      .update(updates)
+      .eq('id', customerId)
+
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 
