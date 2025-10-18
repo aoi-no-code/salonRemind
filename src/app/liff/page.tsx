@@ -85,14 +85,14 @@ export default function LiffPage() {
 
         const isLoggedIn = window.liff.isLoggedIn()
 
-        // liff.state が付与されていれば、そのパスへ遷移（QR深リンクの確実化）
+        // liff.state が付与されていれば、アプリ内でルーター遷移
         try {
           const stateUrl = new URL(window.location.href)
           const liffState = stateUrl.searchParams.get('liff.state')
           if (liffState && typeof liffState === 'string') {
-            // 絶対/相対ともに対応。外部は弾き、同一オリジン内のみ
             if (liffState.startsWith('/')) {
-              window.location.replace(liffState)
+              window.history.replaceState(null, '', stateUrl.pathname) // クエリを掃除
+              window.location.assign(liffState)
               return
             }
           }
@@ -104,7 +104,7 @@ export default function LiffPage() {
           const ridParam = redirectCheckUrl.searchParams.get('rid')
           const tParam = redirectCheckUrl.searchParams.get('t')
           if (ridParam && tParam) {
-            window.location.replace(`/liff/link?rid=${encodeURIComponent(ridParam)}&t=${encodeURIComponent(tParam)}`)
+            window.location.assign(`/liff/link?rid=${encodeURIComponent(ridParam)}&t=${encodeURIComponent(tParam)}`)
             return
           }
         } catch {}

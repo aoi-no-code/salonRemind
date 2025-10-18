@@ -43,11 +43,11 @@ export default function LiffMyPage() {
 
       const url = new URL(window.location.href)
 
-      // liff.state=... がURLに残っていれば、その相対パスに移動
+      // liff.state=... がURLに残っていれば、アプリ内でルーター遷移
       try {
         const liffState = url.searchParams.get('liff.state')
         if (liffState && liffState.startsWith('/')) {
-          window.location.replace(liffState)
+          router.replace(liffState)
           return
         }
       } catch {}
