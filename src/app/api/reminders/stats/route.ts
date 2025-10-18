@@ -52,15 +52,21 @@ export async function GET(request: Request) {
 
     const { thisStartIso, nextStartIso, nextNextStartIso } = getJstMonthUtcBounds(new Date())
 
-    const base = supabaseAdmin
-      .from('reservations')
-      .select('id', { count: 'exact', head: true })
-      .eq('store_id', storeId)
-      .in('status', ['scheduled', 'visit_planned'])
-
     const [{ count: thisCount, error: e1 }, { count: nextCount, error: e2 }] = await Promise.all([
-      base.gte('start_at', thisStartIso).lt('start_at', nextStartIso),
-      base.gte('start_at', nextStartIso).lt('start_at', nextNextStartIso)
+      supabaseAdmin
+        .from('reservations')
+        .select('id', { count: 'exact', head: true })
+        .eq('store_id', storeId)
+        .in('status', ['scheduled', 'visit_planned'])
+        .gte('start_at', thisStartIso)
+        .lt('start_at', nextStartIso),
+      supabaseAdmin
+        .from('reservations')
+        .select('id', { count: 'exact', head: true })
+        .eq('store_id', storeId)
+        .in('status', ['scheduled', 'visit_planned'])
+        .gte('start_at', nextStartIso)
+        .lt('start_at', nextNextStartIso)
     ])
 
     if (e1 || e2) return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
