@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getAuthUserFromRequest } from '@/lib/auth'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: Request, context: any) {
   try {
+    const params = (context as any)?.params as { id: string }
     const user = await getAuthUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // 店舗権限に関しては、顧客が同店舗の予約を持つものに限定して取得
-    const customerId = params.id
+    const customerId = params?.id
 
     // 顧客情報
     const { data: customer, error: customerError } = await supabaseAdmin
