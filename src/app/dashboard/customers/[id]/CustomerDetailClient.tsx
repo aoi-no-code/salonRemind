@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabaseClient'
 
 type Reservation = {
   id: string
@@ -30,7 +31,11 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
       try {
         setLoading(true)
         setError(null)
-        const res = await fetch(`/api/customers/${customerId}`)
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        const res = await fetch(`/api/customers/${customerId}` , {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        })
         const j = await res.json()
         if (!res.ok) {
           setError(j.error || '顧客情報の取得に失敗しました')
