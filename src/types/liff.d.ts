@@ -8,6 +8,7 @@ declare global {
       login: (options?: { scope?: string[]; prompt?: string; redirectUri?: string }) => void
       getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
       getFriendship?: () => Promise<{ friendFlag: boolean }>
+      closeWindow?: () => void
     }
   }
 }

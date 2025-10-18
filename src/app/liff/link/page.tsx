@@ -192,21 +192,3 @@ export default function LiffLinkPage() {
     </>
   )
 }
-
-declare global {
-  interface Window {
-    liff: {
-      init: (config: { liffId: string; withLoginOnExternalBrowser?: boolean }) => Promise<void>
-      isLoggedIn: () => boolean
-      login: (options?: {
-        scope?: string[]
-        prompt?: string
-        redirectUri?: string
-      }) => void
-      getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl?: string }>
-      getFriendship?: () => Promise<{ friendFlag: boolean }>
-      isInClient?: () => boolean
-      closeWindow?: () => void
-    }
-  }
-}
