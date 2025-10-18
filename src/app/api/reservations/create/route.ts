@@ -152,12 +152,6 @@ export async function POST(request: NextRequest) {
         return `${y}/${mo}/${d}(${wk}) ${hh}:${mm}`
       }
 
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID_MYPAGE || process.env.NEXT_PUBLIC_LIFF_ID
-      const statePath = '/liff/mypage?view=reservations'
-      const deeplinkUrl = liffId
-        ? `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(statePath)}`
-        : undefined
-
       const detailLines: string[] = []
       if (store.name) detailLines.push(`店舗: ${store.name}`)
       if ((store as any).address) detailLines.push(`住所: ${(store as any).address}`)
@@ -179,16 +173,6 @@ export async function POST(request: NextRequest) {
                 ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
                 : []),
               { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
-            ]
-          },
-          footer: {
-            type: 'box',
-            layout: 'vertical',
-            spacing: 'sm',
-            contents: [
-              deeplinkUrl
-                ? { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: deeplinkUrl } }
-                : { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: 'https://liff.line.me' } },
             ]
           }
         }

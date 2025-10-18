@@ -189,17 +189,7 @@ export async function POST(request: NextRequest) {
             ...(detailLines.length > 0
               ? [{ type: 'text', text: detailLines.join('\n'), wrap: true, size: 'sm', color: '#333333' } as any]
               : []),
-            { type: 'text', text: '「予約を確認する」から詳細を確認できます。', wrap: true, size: 'sm', color: '#555555' }
-          ]
-        },
-        footer: {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'sm',
-          contents: [
-            deeplinkUrl
-              ? { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: deeplinkUrl } }
-              : { type: 'button', style: 'primary', action: { type: 'uri', label: '予約を確認する', uri: 'https://liff.line.me' } },
+            { type: 'text', text: '予約情報はメニューのマイページから確認できます。', wrap: true, size: 'sm', color: '#555555' }
           ]
         }
       }
