@@ -186,7 +186,7 @@ export default function DashboardPage() {
         <div className="grid lg:grid-cols-3 gap-6 items-start">
           {/* 予約作成フォーム */}
           <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">予約作成</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">予約管理</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">お客様名</label>

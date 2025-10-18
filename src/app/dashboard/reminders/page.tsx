@@ -22,6 +22,7 @@ export default function StoreRemindersPage() {
   const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [customersError, setCustomersError] = useState<string | null>(null)
+  const [stats, setStats] = useState<{ thisMonth: number; nextMonth: number } | null>(null)
 
   useEffect(() => {
     const run = async () => {
@@ -58,6 +59,15 @@ export default function StoreRemindersPage() {
         } finally {
           setLoadingCustomers(false)
         }
+
+        // 月次統計
+        try {
+          const res = await fetch('/api/reminders/stats', {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          })
+          const j = await res.json()
+          if (res.ok) setStats({ thisMonth: j.thisMonth || 0, nextMonth: j.nextMonth || 0 })
+        } catch {}
       } catch (e: any) {
         setError(e.message || 'エラーが発生しました')
       } finally {
@@ -89,10 +99,26 @@ export default function StoreRemindersPage() {
           <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm">{error}</div>
         )}
 
+        {/* 概要カード */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+            <div className="text-sm text-gray-600">今月の予約件数</div>
+            <div className="mt-2 text-3xl font-bold text-gray-900">{stats ? stats.thisMonth : '-'}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+            <div className="text-sm text-gray-600">来月の予約件数</div>
+            <div className="mt-2 text-3xl font-bold text-gray-900">{stats ? stats.nextMonth : '-'}</div>
+          </div>
+        </section>
+
+        {/* 通知一覧 */}
         <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-gray-900">顧客別</h2>
             {loadingCustomers && <div className="text-sm text-gray-600">読み込み中...</div>}
+          </div>
+          <div className="text-xs text-gray-600 mb-3">
+            ステータス: <span className="inline-block align-middle px-2 py-0.5 rounded border border-gray-200 bg-gray-50">今後の予約</span> は、今後の最も近い予約のステータス概要です。
           </div>
           {customersError && <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm mb-3">{customersError}</div>}
           <div className="overflow-x-auto">
