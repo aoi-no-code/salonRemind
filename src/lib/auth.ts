@@ -1,10 +1,9 @@
 import { createClient, type User } from "@supabase/supabase-js"
-import type { NextRequest } from "next/server"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export async function getAuthUserFromRequest(request: NextRequest): Promise<User | null> {
+export async function getAuthUserFromRequest(request: Request): Promise<User | null> {
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
   if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) return null
   const token = authHeader.slice(7)
