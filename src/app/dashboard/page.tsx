@@ -175,11 +175,11 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">店舗ダッシュボード</h1>
+            <h1 className="text-2xl font-bold text-gray-900">予約作成画面</h1>
             <p className="text-gray-600 text-sm">{storeName ? `ログイン中の店舗: ${storeName}` : '店舗が見つかりません。メールやAuthの紐付けをご確認ください。'}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard/reminders" className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md">通知の予定/履歴</Link>
+            <Link href="/dashboard/reminders" className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md">通知管理</Link>
           </div>
         </header>
 

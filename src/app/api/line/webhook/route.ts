@@ -124,7 +124,7 @@ async function handlePostback(event: line.PostbackEvent) {
         return
       }
 
-      await sendReply(event.replyToken, '「来店予定」を受け付けました。当日のご来店をお待ちしております。')
+      await sendReply(event.replyToken, '「来店予定」を受け付けました。\n前日にもリマインドをお送りします。\n当日のご来店をお待ちしております。')
       console.log(`予約visit_planned更新完了: ${parsed.rid}`)
       return
     }
