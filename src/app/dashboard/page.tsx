@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import QrModal from '@/components/QrModal'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import RequireAuth from '@/components/RequireAuth'
 
 export default function DashboardPage() {
   const [openQr, setOpenQr] = useState(false)
@@ -171,6 +172,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         <header className="flex items-center justify-between">
@@ -259,6 +261,7 @@ export default function DashboardPage() {
       </div>
       <QrModal open={openQr} onClose={() => setOpenQr(false)} qrUrl={qrUrl} linkUrl={linkUrl} />
     </div>
+    </RequireAuth>
   )
 }
 

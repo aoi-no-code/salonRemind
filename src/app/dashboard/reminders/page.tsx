@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { formatJstMdHm } from '@/lib/time'
+import RequireAuth from '@/components/RequireAuth'
 
 type CustomerRow = {
   customerId: string
@@ -90,6 +91,7 @@ export default function StoreRemindersPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         <header className="flex items-center justify-between">
@@ -267,6 +269,7 @@ export default function StoreRemindersPage() {
         </section>
       </div>
     </div>
+    </RequireAuth>
   )
 }
 
