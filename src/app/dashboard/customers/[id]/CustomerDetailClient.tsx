@@ -29,6 +29,10 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
   const [editingName, setEditingName] = useState<string>('')
   const [editingPhone, setEditingPhone] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const [openChange, setOpenChange] = useState<string | null>(null) // reservationId
+  const [openCancel, setOpenCancel] = useState<string | null>(null)
+  const [datePart, setDatePart] = useState('')
+  const [timePart, setTimePart] = useState('')
 
   useEffect(() => {
     const run = async () => {
@@ -157,16 +161,26 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                     <td className="py-2 pr-4">
                       <div className="flex gap-2">
                         <Link href={`/reservations/${r.id}`} className="text-blue-600 hover:underline">詳細</Link>
-                        {/* 変更・キャンセル導線（実装方針: LIFFへ誘導） */}
-                        <a
-                          className="text-green-700 hover:underline"
-                          href={process.env.NEXT_PUBLIC_LIFF_ID ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID}?view=reservations&rid=${encodeURIComponent(r.id)}` : '#'}
-                          target="_blank"
-                        >変更</a>
+                        <button className="text-green-700 hover:underline" onClick={() => {
+                          setOpenChange(r.id)
+                          try {
+                            const d = new Date(r.startAt)
+                            const yyyy = d.getFullYear()
+                            const mm = String(d.getMonth() + 1).padStart(2, '0')
+                            const dd = String(d.getDate()).padStart(2, '0')
+                            const hh = String(d.getHours()).padStart(2, '0')
+                            const mi = String(d.getMinutes()).padStart(2, '0')
+                            setDatePart(`${yyyy}-${mm}-${dd}`)
+                            setTimePart(`${hh}:${mi}`)
+                          } catch {
+                            setDatePart('')
+                            setTimePart('')
+                          }
+                        }}>変更</button>
                         <a
                           className="text-red-700 hover:underline"
-                          href={process.env.NEXT_PUBLIC_LIFF_ID ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID}?view=reservations&rid=${encodeURIComponent(r.id)}&link=cancel` : '#'}
-                          target="_blank"
+                          onClick={(e) => { e.preventDefault(); setOpenCancel(r.id) }}
+                          href="#"
                         >キャンセル</a>
                       </div>
                     </td>
@@ -182,6 +196,93 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
           </div>
         </section>
       </div>
+
+      {/* 変更モーダル */}
+      {openChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-40" onClick={() => setOpenChange(null)} />
+          <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 w-full max-w-md mx-auto p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">予約日時を変更</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="text-sm text-gray-700">
+                日付
+                <input type="date" className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2"
+                  value={datePart} onChange={e => setDatePart(e.target.value)} />
+              </label>
+              <label className="text-sm text-gray-700">
+                時刻
+                <input type="time" step={1800} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2"
+                  value={timePart} onChange={e => setTimePart(e.target.value)} />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setOpenChange(null)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700">キャンセル</button>
+              <button
+                className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+                disabled={!datePart || !timePart}
+                onClick={async () => {
+                  try {
+                    const localIso = `${datePart}T${timePart}:00`
+                    const { data: sessionData } = await supabase.auth.getSession()
+                    const token = sessionData.session?.access_token
+                    const res = await fetch('/api/reservations/update', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                      body: JSON.stringify({ reservationId: openChange, startAt: localIso })
+                    })
+                    const j = await res.json().catch(() => ({}))
+                    if (!res.ok || !j.ok) throw new Error(j.error || '更新に失敗しました')
+                    setDetail((d) => d ? {
+                      ...d,
+                      reservations: d.reservations.map(r => r.id === openChange ? { ...r, startAt: j.reservation.start_at } : r)
+                    } : d)
+                    setOpenChange(null)
+                  } catch (e: any) {
+                    setError(e.message || '更新時にエラーが発生しました')
+                  }
+                }}
+              >保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* キャンセル確認モーダル */}
+      {openCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-40" onClick={() => setOpenCancel(null)} />
+          <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 w-full max-w-md mx-auto p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">この予約をキャンセルしますか？</h3>
+            <div className="text-sm text-gray-600">キャンセル後は元に戻せません。</div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setOpenCancel(null)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700">戻る</button>
+              <button
+                className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white"
+                onClick={async () => {
+                  try {
+                    const { data: sessionData } = await supabase.auth.getSession()
+                    const token = sessionData.session?.access_token
+                    const res = await fetch('/api/reservations/cancel', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                      body: JSON.stringify({ reservationId: openCancel })
+                    })
+                    const j = await res.json().catch(() => ({}))
+                    if (!res.ok || !j.ok) throw new Error(j.error || 'キャンセルに失敗しました')
+                    setDetail((d) => d ? {
+                      ...d,
+                      reservations: d.reservations.map(r => r.id === openCancel ? { ...r, status: 'cancelled' } : r)
+                    } : d)
+                    setOpenCancel(null)
+                  } catch (e: any) {
+                    setError(e.message || 'キャンセル時にエラーが発生しました')
+                  }
+                }}
+              >キャンセルする</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
