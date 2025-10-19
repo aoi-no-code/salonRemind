@@ -101,8 +101,8 @@ export default function StoreRemindersPage() {
           <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm">{error}</div>
         )}
 
-        {/* 概要カード */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* 概要カード（モバイルも横並び） */}
+        <section className="grid grid-cols-2 gap-4">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
             <div className="text-sm text-gray-600">今月の予約件数</div>
             <div className="mt-2 text-3xl font-bold text-gray-900">{stats ? stats.thisMonth : '-'}</div>
