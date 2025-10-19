@@ -5,6 +5,12 @@ import Script from 'next/script'
 export const metadata: Metadata = {
   title: 'サロンリマインド',
   description: 'LINEで予約の数日前にリマインドするシステム',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: ['/favicon.svg'],
+  },
 }
 
 export default function RootLayout({
