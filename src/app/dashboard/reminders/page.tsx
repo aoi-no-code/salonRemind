@@ -8,8 +8,9 @@ import { formatJstMdHm } from '@/lib/time'
 type CustomerRow = {
   customerId: string
   customerName: string | null
-  phoneNumber: string | null
+  // phoneNumber は表示しない
   nextReservationAt: string | null
+  status?: string | null
   sent7d: boolean
   sent1d: boolean
 }
@@ -117,11 +118,18 @@ export default function StoreRemindersPage() {
             <h2 className="text-lg font-semibold text-gray-900">顧客別</h2>
             {loadingCustomers && <div className="text-sm text-gray-600">読み込み中...</div>}
           </div>
-          <div className="text-xs text-gray-600 mb-3">
-            ステータス: <span className="inline-block align-middle px-2 py-0.5 rounded border border-gray-200 bg-gray-50">今後の予約</span> は、今後の最も近い予約のステータス概要です。
+          <div className="text-xs text-gray-700 mb-4 space-y-1">
+            <div>各行のステータスは「今後の最も近い予約」の状態です。</div>
+            <ul className="list-disc ml-5 space-y-0.5">
+              <li><span className="font-medium">来店予定</span>（scheduled）: 予約してある状態です。</li>
+              <li><span className="font-medium">来店確認済み</span>（visit_planned）: 一週間前のお知らせで来店の旨を確認済みです。</li>
+              <li><span className="font-medium">変更希望</span>（change_requested）: 変更を希望しています。お客様から電話がない場合は予約日1〜3日前になったら確認のお電話差し上げてください。</li>
+              <li><span className="font-medium">キャンセル</span>（cancelled）: お客様は予約日1日前までであればこちらでキャンセルにできます。</li>
+            </ul>
           </div>
           {customersError && <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm mb-3">{customersError}</div>}
-          <div className="overflow-x-auto">
+          {/* PC: テーブル表示 */}
+          <div className="overflow-x-auto hidden sm:block">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-600">
@@ -139,10 +147,21 @@ export default function StoreRemindersPage() {
                       <Link href={`/dashboard/customers/${c.customerId}`} className="text-blue-600 hover:underline">
                         {c.customerName || '(名前未設定)'}
                       </Link>
-                      <div className="text-xs text-gray-500">{c.phoneNumber || '-'}</div>
                     </td>
                     <td className="py-2 pr-4">{c.nextReservationAt ? formatJstMdHm(c.nextReservationAt) : '-'}</td>
-                    <td className="py-2 pr-4"><span className="text-xs text-gray-700 border border-gray-200 bg-gray-50 px-2 py-0.5 rounded">今後の予約</span></td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded border ${
+                        c.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
+                        c.status === 'change_requested' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+                        c.status === 'visit_planned' ? 'bg-green-50 text-green-700 border-green-200' :
+                        'bg-gray-50 text-gray-700 border-gray-200'
+                      }`}>
+                        {c.status === 'cancelled' ? 'キャンセル' :
+                         c.status === 'change_requested' ? '変更希望' :
+                         c.status === 'visit_planned' ? '来店確認済み' :
+                         '来店予定'}
+                      </span>
+                    </td>
                     <td className="py-2 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs border ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
                     </td>
@@ -158,6 +177,40 @@ export default function StoreRemindersPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: カード表示 */}
+          <div className="sm:hidden space-y-3">
+            {customers.map((c) => (
+              <div key={c.customerId} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <Link href={`/dashboard/customers/${c.customerId}`} className="text-blue-600 font-medium hover:underline">
+                    {c.customerName || '(名前未設定)'}
+                  </Link>
+                  <span className={`text-xs px-2 py-0.5 rounded border ${
+                    c.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
+                    c.status === 'change_requested' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+                    c.status === 'visit_planned' ? 'bg-green-50 text-green-700 border-green-200' :
+                    'bg-gray-50 text-gray-700 border-gray-200'
+                  }`}>
+                    {c.status === 'cancelled' ? 'キャンセル' :
+                     c.status === 'change_requested' ? '変更希望' :
+                     c.status === 'visit_planned' ? '来店確認済み' :
+                     '来店予定'}
+                  </span>
+                </div>
+                <div className="mt-2 text-sm text-gray-800">{c.nextReservationAt ? formatJstMdHm(c.nextReservationAt) : '-'}</div>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <span className="text-gray-600">一週間前:</span>
+                  <span className={`px-2 py-0.5 rounded border ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
+                  <span className="ml-3 text-gray-600">前日:</span>
+                  <span className={`px-2 py-0.5 rounded border ${c.sent1d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent1d ? '済' : '-'}</span>
+                </div>
+              </div>
+            ))}
+            {customers.length === 0 && (
+              <div className="text-gray-500 text-sm">対象のお客様がいません</div>
+            )}
           </div>
         </section>
       </div>
