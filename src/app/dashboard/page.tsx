@@ -158,9 +158,15 @@ export default function DashboardPage() {
       }
 
       setQrUrl(genData.qrUrl)
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-      if (liffId) {
-        setLinkUrl(`https://liff.line.me/${liffId}?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(genData.linkToken)}`)
+      // APIが返すLIFFの完全URLを優先採用。無い場合のみ環境変数から生成
+      if (genData.liffUrl) {
+        setLinkUrl(genData.liffUrl)
+      } else {
+        const liffIdLink = process.env.NEXT_PUBLIC_LIFF_ID_LINK
+        if (liffIdLink) {
+          const statePath = `/liff/link?rid=${encodeURIComponent(reservationId)}&t=${encodeURIComponent(genData.linkToken)}`
+          setLinkUrl(`https://liff.line.me/${liffIdLink}?liff.state=${encodeURIComponent(statePath)}`)
+        }
       }
       setOpenQr(true)
     } catch (e: any) {
