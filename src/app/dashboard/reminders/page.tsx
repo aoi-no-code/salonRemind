@@ -121,10 +121,10 @@ export default function StoreRemindersPage() {
           <div className="text-xs text-gray-700 mb-4 space-y-1">
             <div>各行のステータスは「今後の最も近い予約」の状態です。</div>
             <ul className="list-disc ml-5 space-y-0.5">
-              <li><span className="font-medium">来店予定</span>（scheduled）: 予約してある状態です。</li>
-              <li><span className="font-medium">来店確認済み</span>（visit_planned）: 一週間前のお知らせで来店の旨を確認済みです。</li>
-              <li><span className="font-medium">変更希望</span>（change_requested）: 変更を希望しています。お客様から電話がない場合は予約日1〜3日前になったら確認のお電話差し上げてください。</li>
-              <li><span className="font-medium">キャンセル</span>（cancelled）: お客様は予約日1日前までであればこちらでキャンセルにできます。</li>
+              <li><span className="font-medium">来店予定 : 予約してある状態です。</li>
+              <li><span className="font-medium">来店確認済み : 一週間前のお知らせで来店の旨を確認済みです。</li>
+              <li><span className="font-medium">変更希望 : 変更を希望しています。お客様から電話がない場合は予約日1〜3日前になったら確認のお電話差し上げてください。</li>
+              <li><span className="font-medium">キャンセル : お客様は予約日1日前までであればこちらでキャンセルにできます。</li>
             </ul>
           </div>
           {customersError && <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm mb-3">{customersError}</div>}
