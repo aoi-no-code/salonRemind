@@ -33,6 +33,7 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
   const [openCancel, setOpenCancel] = useState<string | null>(null)
   const [datePart, setDatePart] = useState('')
   const [timePart, setTimePart] = useState('')
+  const [noteInput, setNoteInput] = useState('')
 
   useEffect(() => {
     const run = async () => {
@@ -180,9 +181,11 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                             const mi = String(d.getMinutes()).padStart(2, '0')
                             setDatePart(`${yyyy}-${mm}-${dd}`)
                             setTimePart(`${hh}:${mi}`)
+                            setNoteInput(r.note || '')
                           } catch {
                             setDatePart('')
                             setTimePart('')
+                            setNoteInput('')
                           }
                         }}>変更</button>
                         <a
@@ -240,9 +243,11 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                         const mi = String(d.getMinutes()).padStart(2, '0')
                         setDatePart(`${yyyy}-${mm}-${dd}`)
                         setTimePart(`${hh}:${mi}`)
+                        setNoteInput(r.note || '')
                       } catch {
                         setDatePart('')
                         setTimePart('')
+                        setNoteInput('')
                       }
                     }}>変更</button>
                   <button className="text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50"
@@ -274,6 +279,12 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                 <input type="time" step={1800} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2"
                   value={timePart} onChange={e => setTimePart(e.target.value)} />
               </label>
+              <label className="text-sm text-gray-700 sm:col-span-2">
+                メモ
+                <textarea className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" rows={3}
+                  placeholder="備考を入力"
+                  value={noteInput} onChange={(e) => setNoteInput(e.target.value)} />
+              </label>
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setOpenChange(null)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700">キャンセル</button>
@@ -288,13 +299,13 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                     const res = await fetch('/api/reservations/update', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                      body: JSON.stringify({ reservationId: openChange, startAt: localIso })
+                      body: JSON.stringify({ reservationId: openChange, startAt: localIso, note: noteInput })
                     })
                     const j = await res.json().catch(() => ({}))
                     if (!res.ok || !j.ok) throw new Error(j.error || '更新に失敗しました')
                     setDetail((d) => d ? {
                       ...d,
-                      reservations: d.reservations.map(r => r.id === openChange ? { ...r, startAt: j.reservation.start_at } : r)
+                      reservations: d.reservations.map(r => r.id === openChange ? { ...r, startAt: j.reservation.start_at, note: j.reservation.note ?? null } : r)
                     } : d)
                     setOpenChange(null)
                   } catch (e: any) {

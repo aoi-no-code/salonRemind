@@ -19,7 +19,10 @@ function localIsoJstToUtcDate(localIso: string): Date {
 
 const BodySchema = z.object({
   reservationId: z.string().uuid(),
-  startAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
+  startAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/).optional(),
+  note: z.string().nullable().optional(),
+}).refine(v => typeof v.startAt === 'string' || 'note' in v, {
+  message: 'startAt または note のいずれかは必須です',
 })
 
 export async function POST(request: Request) {
@@ -30,13 +33,20 @@ export async function POST(request: Request) {
     const body = await request.json()
     const parsed = BodySchema.parse(body)
 
-    const startUtc = localIsoJstToUtcDate(parsed.startAt)
+    const updates: any = {}
+    if (typeof parsed.startAt === 'string') {
+      const startUtc = localIsoJstToUtcDate(parsed.startAt)
+      updates.start_at = startUtc.toISOString()
+    }
+    if ('note' in parsed) {
+      updates.note = parsed.note ?? null
+    }
 
     const { data: updated, error } = await supabaseAdmin
       .from('reservations')
-      .update({ start_at: startUtc.toISOString() })
+      .update(updates)
       .eq('id', parsed.reservationId)
-      .select('id, start_at')
+      .select('id, start_at, note')
       .single()
 
     if (error) {

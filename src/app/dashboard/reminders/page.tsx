@@ -9,10 +9,12 @@ type CustomerRow = {
   customerId: string
   customerName: string | null
   // phoneNumber は表示しない
+  phoneNumber?: string | null
   nextReservationAt: string | null
   status?: string | null
   sent7d: boolean
   sent1d: boolean
+  changeRequestedAt?: string | null
 }
 
 export default function StoreRemindersPage() {
@@ -116,6 +118,43 @@ export default function StoreRemindersPage() {
           </div>
         </section>
 
+        {/* 変更希望アラート */}
+        {(() => {
+          const changes = (customers || []).filter(c => c.status === 'change_requested')
+          if (changes.length === 0) return null
+          return (
+            <section className="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-yellow-900">変更希望があります（{changes.length}件）</h3>
+              </div>
+              <div className="space-y-2">
+                {changes.map((c) => {
+                  const next = c.nextReservationAt ? new Date(c.nextReservationAt) : null
+                  const now = new Date()
+                  const daysUntil = next ? Math.max(0, Math.ceil((next.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : null
+                  const changedAt = c.changeRequestedAt ? new Date(c.changeRequestedAt) : null
+                  const hoursSince = changedAt ? Math.floor((now.getTime() - changedAt.getTime()) / (1000 * 60 * 60)) : null
+                  return (
+                    <div key={c.customerId} className="flex items-center justify-between text-sm">
+                      <div className="flex flex-col">
+                        <Link href={`/dashboard/customers/${c.customerId}`} className="text-blue-700 hover:underline">
+                          {c.customerName || '(名前未設定)'}
+                        </Link>
+                        <div className="text-xs text-yellow-900">TEL: {c.phoneNumber || '-'}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-yellow-900">{c.nextReservationAt ? formatJstMdHm(c.nextReservationAt) : '-'}</div>
+                        <div className="text-xs text-yellow-900">{daysUntil !== null ? `予約日まであと${daysUntil}日` : ''}</div>
+                        <div className="text-[11px] text-yellow-800 opacity-80">{hoursSince !== null ? `変更希望から${hoursSince}時間` : ''}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })()}
+
         {/* 通知一覧 */}
         <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-3">
@@ -192,13 +231,12 @@ export default function StoreRemindersPage() {
             </table>
           </div>
 
-          {/* Mobile: カード表示（情報を整理して見やすく） */}
+          {/* Mobile: カード表示 */}
           <div className="sm:hidden space-y-3">
             {customers.map((c) => (
-              <div key={c.customerId} className="border border-gray-200 rounded-lg p-4 bg-white">
-                {/* ヘッダー: 名前 + ステータス */}
+              <div key={c.customerId} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <Link href={`/dashboard/customers/${c.customerId}`} className="text-base font-medium text-blue-600 hover:underline">
+                  <Link href={`/dashboard/customers/${c.customerId}`} className="text-blue-600 font-medium hover:underline">
                     {c.customerName || '(名前未設定)'}
                   </Link>
                   <span className={`text-xs px-2 py-0.5 rounded border ${
@@ -213,26 +251,12 @@ export default function StoreRemindersPage() {
                      '来店予定'}
                   </span>
                 </div>
-
-                {/* 内容: 項目×値の2列 */}
-                <div className="mt-3 grid grid-cols-3 gap-y-2 text-sm">
-                  <div className="col-span-1 text-gray-600">予約日時</div>
-                  <div className="col-span-2 text-gray-900">{c.nextReservationAt ? formatJstMdHm(c.nextReservationAt) : '-'}</div>
-
-                  <div className="col-span-1 text-gray-600">一週間前</div>
-                  <div className="col-span-2">
-                    <span className={`px-2 py-0.5 rounded border text-xs ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
-                  </div>
-
-                  <div className="col-span-1 text-gray-600">前日</div>
-                  <div className="col-span-2">
-                    <span className={`px-2 py-0.5 rounded border text-xs ${c.sent1d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent1d ? '済' : '-'}</span>
-                  </div>
-                </div>
-
-                {/* フッター: 詳細ボタン */}
-                <div className="mt-3 flex justify-end">
-                  <Link href={`/dashboard/customers/${c.customerId}`} className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">詳細へ</Link>
+                <div className="mt-2 text-sm text-gray-800">{c.nextReservationAt ? formatJstMdHm(c.nextReservationAt) : '-'}</div>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <span className="text-gray-600">一週間前:</span>
+                  <span className={`px-2 py-0.5 rounded border ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
+                  <span className="ml-3 text-gray-600">前日:</span>
+                  <span className={`px-2 py-0.5 rounded border ${c.sent1d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent1d ? '済' : '-'}</span>
                 </div>
               </div>
             ))}

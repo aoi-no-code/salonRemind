@@ -46,10 +46,11 @@ export async function GET(request: NextRequest) {
         id,
         start_at,
         status,
+        change_requested_at,
         customers:customers(id, display_name, phone_number)
       `)
       .eq('store_id', storeId)
-      .in('status', ['scheduled', 'visit_planned'])
+      .in('status', ['scheduled', 'visit_planned', 'change_requested'])
       .gte('start_at', nowIso)
       .order('start_at', { ascending: true })
 
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
       nextReservationAt: string | null
       reservationId: string | null
       status?: string | null
+      changeRequestedAt?: string | null
     }
 
     const perCustomer = new Map<string, CustomerRow>()
@@ -82,6 +84,7 @@ export async function GET(request: NextRequest) {
           nextReservationAt: nextAt,
           reservationId: r.id as string,
           status: r.status as string | null,
+          changeRequestedAt: (r as any).change_requested_at || null,
         })
       } else {
         // 既にあるものより早い予約があれば更新
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
           existing.nextReservationAt = nextAt
           existing.reservationId = r.id as string
           existing.status = r.status as string | null
+          existing.changeRequestedAt = (r as any).change_requested_at || existing.changeRequestedAt || null
         }
       }
     }
@@ -117,7 +121,7 @@ export async function GET(request: NextRequest) {
       if (logs1d) sent1d = new Set(logs1d.map((l: any) => l.reservation_id))
     }
 
-    const result = rows.map(r => ({
+    const result = rows.map((r: any) => ({
       customerId: r.customerId,
       customerName: r.customerName,
       phoneNumber: r.phoneNumber,
@@ -125,6 +129,7 @@ export async function GET(request: NextRequest) {
       status: r.status || 'scheduled',
       sent7d: r.reservationId ? sent7d.has(r.reservationId) : false,
       sent1d: r.reservationId ? sent1d.has(r.reservationId) : false,
+      changeRequestedAt: r.changeRequestedAt || null,
     }))
 
     return NextResponse.json({ customers: result })

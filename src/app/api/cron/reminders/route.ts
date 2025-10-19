@@ -26,17 +26,19 @@ export async function GET(request: NextRequest) {
         id,
         start_at,
         status,
-        stores:stores(name),
+        stores:stores(name, phone_number),
         customers:customers(line_user_id)
       `)
-      .in('status', ['scheduled', 'visit_planned'])
+      .in('status', ['scheduled', 'visit_planned', 'change_requested'])
       .gte('start_at', oneWeekBounds.startIso)
       .lt('start_at', oneWeekBounds.endIso)
       .order('start_at', { ascending: true })
     const oneWeekReservations = (oneWeekRaw || []).map((r: any) => ({
       reservation_id: r.id,
       start_at: r.start_at,
+      status: r.status,
       store_name: r.stores?.name ?? '',
+      store_phone: r.stores?.phone_number ?? '',
       line_user_id: r.customers?.line_user_id ?? null
     }))
     
@@ -52,17 +54,19 @@ export async function GET(request: NextRequest) {
         id,
         start_at,
         status,
-        stores:stores(name),
+        stores:stores(name, phone_number),
         customers:customers(line_user_id)
       `)
-      .in('status', ['scheduled', 'visit_planned'])
+      .in('status', ['scheduled', 'visit_planned', 'change_requested'])
       .gte('start_at', tomorrowBounds.startIso)
       .lt('start_at', tomorrowBounds.endIso)
       .order('start_at', { ascending: true })
     const tomorrowReservations = (tomorrowRaw || []).map((r: any) => ({
       reservation_id: r.id,
       start_at: r.start_at,
+      status: r.status,
       store_name: r.stores?.name ?? '',
+      store_phone: r.stores?.phone_number ?? '',
       line_user_id: r.customers?.line_user_id ?? null
     }))
     
@@ -131,8 +135,14 @@ export async function GET(request: NextRequest) {
                     { type: 'text', text: `🗓 ご予約日：${formatJst(reservation.start_at)}〜`, wrap: true, size: 'sm' }
                   ]
                 },
-                { type: 'text', text: 'このままご来店予定でしたら、\n下のボタンから「来店予定」を押してください🌸', wrap: true, size: 'sm', margin: 'md' },
-                { type: 'text', text: '※変更やキャンセルはマイページから可能です。', wrap: true, size: 'xs', color: '#8c8c8c', margin: 'md' }
+                ...(reservation.status === 'change_requested'
+                  ? [
+                      { type: 'text', text: '変更希望のご連絡はお済みでしょうか？', wrap: true, size: 'sm', margin: 'md' },
+                      { type: 'text', text: `店舗へのご連絡先: ${reservation.store_phone || '（電話番号未登録）'}`, wrap: true, size: 'sm', color: '#555555' }
+                    ]
+                  : []),
+                { type: 'text', text: 'もしこのままご来店予定でしたら、\n下のボタンから「来店予定」に変更もできます🌸', wrap: true, size: 'sm', margin: 'md' },
+                { type: 'text', text: '※前日までであればキャンセルはマイページから可能です。', wrap: true, size: 'xs', color: '#8c8c8c', margin: 'md' }
               ]
             },
             footer: {
@@ -191,7 +201,7 @@ export async function GET(request: NextRequest) {
         
         const message: Parameters<typeof lineClient.pushMessage>[1] = {
           type: 'flex',
-          altText: `【前日リマインド】明日 ${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約です。`,
+          altText: `明日 ${formatJst(reservation.start_at)} に ${reservation.store_name} のご予約です。`,
           contents: {
             type: 'bubble',
             body: {
@@ -211,8 +221,37 @@ export async function GET(request: NextRequest) {
                     { type: 'text', text: `🗓 ご予約日：${formatJst(reservation.start_at)}〜`, wrap: true, size: 'sm' }
                   ]
                 },
+                ...(reservation.status === 'change_requested'
+                  ? [
+                      { type: 'text', text: '変更希望の方はご連絡はお済みでしょうか？', wrap: true, size: 'sm', margin: 'md' },
+                      { type: 'text', text: `店舗へのご連絡先: ${reservation.store_phone || '（電話番号未登録）'}`, wrap: true, size: 'sm', color: '#555555' }
+                    ]
+                  : []),
+                ...(reservation.status === 'scheduled'
+                  ? [
+                      { type: 'text', text: 'このままご来店予定でしたら、\n下のボタンから「来店予定」に変更してください🌸', wrap: true, size: 'sm', margin: 'md' }
+                    ]
+                  : [])
               ]
             },
+            footer: reservation.status === 'scheduled'
+              ? {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'lg',
+                  contents: [
+                    {
+                      type: 'button',
+                      style: 'primary',
+                      action: {
+                        type: 'postback',
+                        label: '来店予定',
+                        data: `remind=visit&rid=${reservation.reservation_id}`
+                      }
+                    }
+                  ]
+                }
+              : undefined
           }
         } as any
         

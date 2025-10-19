@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const { error: updateError } = await supabaseAdmin
       .from('reservations')
-      .update({ status: 'change_requested' })
+      .update({ status: 'change_requested', change_requested_at: new Date().toISOString() })
       .eq('id', reservationId)
 
     if (updateError) {
