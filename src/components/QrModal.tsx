@@ -67,7 +67,6 @@ export default function QrModal({ open, onClose, qrUrl, linkUrl }: QrModalProps)
               <button onClick={handleCopy} className="px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">{copied ? 'コピー済' : 'コピー'}</button>
             </div>
             <div className="flex gap-2">
-              <a href={linkUrl} target="_blank" rel="noreferrer" className="px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 text-center">開く</a>
               <button onClick={handleShare} className="px-3 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">共有</button>
             </div>
           </div>
