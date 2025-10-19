@@ -91,9 +91,12 @@ export default function StoreRemindersPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">通知管理</h1>
-            <p className="text-gray-600 text-sm">{storeName ? `ログイン中の店舗: ${storeName}` : 'ログイン中の店舗を特定できませんでした'}</p>
+          <div className="flex items-center gap-3">
+            <button onClick={() => history.back()} className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">戻る</button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">通知管理</h1>
+              <p className="text-gray-600 text-sm">{storeName ? `ログイン中の店舗: ${storeName}` : 'ログイン中の店舗を特定できませんでした'}</p>
+            </div>
           </div>
         </header>
 
