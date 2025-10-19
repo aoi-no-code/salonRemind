@@ -7,9 +7,12 @@ export const metadata: Metadata = {
   description: 'LINEで予約の数日前にリマインドするシステム',
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
     ],
-    shortcut: ['/favicon.svg'],
+    shortcut: ['/favicon.ico'],
+    other: [
+      { rel: 'mask-icon', url: '/safari-pinned-tab.svg', color: '#16A34A' },
+    ],
   },
 }
 

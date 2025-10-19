@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Safari pinned tab uses the fill color from 'color' attribute in link tag -->
+  <path fill="#000" d="M12 10a6 6 0 0 1 6-6h28a6 6 0 0 1 6 6v44a6 6 0 0 1-6 6H18a6 6 0 0 1-6-6z"/>
+  <path fill="#fff" d="M20 33.5l7.5 7.5L44 24.5" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
