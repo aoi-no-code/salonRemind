@@ -140,7 +140,8 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-gray-900">予約一覧</h2>
           </div>
-          <div className="overflow-x-auto">
+          {/* PC: テーブル表示 */}
+          <div className="overflow-x-auto hidden sm:block">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-600">
@@ -156,7 +157,14 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                   <tr key={r.id} className="border-t border-gray-100">
                     <td className="py-2 pr-4">{formatJstMdHm(r.startAt)}</td>
                     <td className="py-2 pr-4">{r.storeName || '-'}</td>
-                    <td className="py-2 pr-4">{r.status}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded border ${
+                        r.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
+                        r.status === 'change_requested' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+                        r.status === 'visit_planned' ? 'bg-green-50 text-green-700 border-green-200' :
+                        'bg-gray-50 text-gray-700 border-gray-200'
+                      }`}>{r.status}</span>
+                    </td>
                     <td className="py-2 pr-4 max-w-[360px] truncate" title={r.note || ''}>{r.note || '-'}</td>
                     <td className="py-2 pr-4">
                       <div className="flex gap-2">
@@ -193,6 +201,58 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: カード表示 */}
+          <div className="sm:hidden space-y-3">
+            {detail.reservations.map((r) => (
+              <div key={r.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">予約日時</div>
+                  <div className="text-sm text-gray-900">{formatJstMdHm(r.startAt)}</div>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-y-1 text-sm">
+                  <div className="text-gray-600">店舗</div>
+                  <div className="col-span-2 text-gray-900">{r.storeName || '-'}</div>
+                  <div className="text-gray-600">ステータス</div>
+                  <div className="col-span-2">
+                    <span className={`text-xs px-2 py-0.5 rounded border ${
+                      r.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
+                      r.status === 'change_requested' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+                      r.status === 'visit_planned' ? 'bg-green-50 text-green-700 border-green-200' :
+                      'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}>{r.status}</span>
+                  </div>
+                  <div className="text-gray-600">メモ</div>
+                  <div className="col-span-2 text-gray-900 truncate" title={r.note || ''}>{r.note || '-'}</div>
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  <Link href={`/reservations/${r.id}`} className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">詳細</Link>
+                  <button className="text-xs px-3 py-1.5 rounded border border-green-300 text-green-700 hover:bg-green-50"
+                    onClick={() => {
+                      setOpenChange(r.id)
+                      try {
+                        const d = new Date(r.startAt)
+                        const yyyy = d.getFullYear()
+                        const mm = String(d.getMonth() + 1).padStart(2, '0')
+                        const dd = String(d.getDate()).padStart(2, '0')
+                        const hh = String(d.getHours()).padStart(2, '0')
+                        const mi = String(d.getMinutes()).padStart(2, '0')
+                        setDatePart(`${yyyy}-${mm}-${dd}`)
+                        setTimePart(`${hh}:${mi}`)
+                      } catch {
+                        setDatePart('')
+                        setTimePart('')
+                      }
+                    }}>変更</button>
+                  <button className="text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50"
+                    onClick={() => setOpenCancel(r.id)}>キャンセル</button>
+                </div>
+              </div>
+            ))}
+            {detail.reservations.length === 0 && (
+              <div className="text-gray-500 text-sm">予約がありません</div>
+            )}
           </div>
         </section>
       </div>
