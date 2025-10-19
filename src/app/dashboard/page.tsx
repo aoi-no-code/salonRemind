@@ -195,7 +195,7 @@ export default function DashboardPage() {
                 <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="山田 太郎" />
               </div>
               {/* 店舗フィールドは削除（ログイン店舗固定） */}
-              <div className="grid grid-cols-2 gap-2 md:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:col-span-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">来店日</label>
                   <input
