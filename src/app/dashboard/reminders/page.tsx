@@ -24,6 +24,7 @@ export default function StoreRemindersPage() {
   const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [customersError, setCustomersError] = useState<string | null>(null)
   const [stats, setStats] = useState<{ thisMonth: number; nextMonth: number } | null>(null)
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     const run = async () => {
@@ -115,18 +116,27 @@ export default function StoreRemindersPage() {
         {/* 通知一覧 */}
         <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">顧客別</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900">顧客別</h2>
+              <button
+                aria-label="ステータス説明"
+                className="w-5 h-5 rounded-full border border-gray-300 text-gray-600 text-xs flex items-center justify-center hover:bg-gray-50"
+                onClick={() => setShowHelp(v => !v)}
+              >?</button>
+            </div>
             {loadingCustomers && <div className="text-sm text-gray-600">読み込み中...</div>}
           </div>
-          <div className="text-xs text-gray-700 mb-4 space-y-1">
-            <div>各行のステータスは「今後の最も近い予約」の状態です。</div>
-            <ul className="list-disc ml-5 space-y-0.5">
-              <li><span className="font-medium">来店予定</span> : 予約してある状態です。</li>
-              <li><span className="font-medium">来店確認済み</span> : 一週間前のお知らせで来店の旨を確認済みです。</li>
-              <li><span className="font-medium">変更希望</span> : 変更を希望しています。お客様から電話がない場合は予約日1〜3日前になったら確認のお電話差し上げてください。</li>
-              <li><span className="font-medium">キャンセル</span> : お客様は予約日1日前までであればこちらでキャンセルにできます。</li>
-            </ul>
-          </div>
+          {showHelp && (
+            <div className="text-xs text-gray-700 mb-4 space-y-1">
+              <div>各行のステータスは「今後の最も近い予約」の状態です。</div>
+              <ul className="list-disc ml-5 space-y-0.5">
+                <li><span className="font-medium">来店予定</span> : 予約してある状態です。</li>
+                <li><span className="font-medium">来店確認済み</span> : 一週間前のお知らせで来店の旨を確認済みです。</li>
+                <li><span className="font-medium">変更希望</span> : 変更を希望しています。お客様から電話がない場合は予約日1〜3日前になったら確認のお電話差し上げてください。</li>
+                <li><span className="font-medium">キャンセル</span> : お客様は予約日1日前までであればこちらでキャンセルにできます。</li>
+              </ul>
+            </div>
+          )}
           {customersError && <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 text-sm mb-3">{customersError}</div>}
           {/* PC: テーブル表示 */}
           <div className="overflow-x-auto hidden sm:block">
