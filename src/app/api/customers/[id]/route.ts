@@ -91,4 +91,39 @@ export async function PATCH(request: Request, context: any) {
   }
 }
 
+export async function DELETE(request: Request, context: any) {
+  try {
+    const params = (context as any)?.params as { id: string }
+    const user = await getAuthUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const customerId = params?.id
+    if (!customerId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+
+    // 1) 関連予約を先に削除（外部キー制約回避のため）
+    const { error: deleteReservationsError } = await supabaseAdmin
+      .from('reservations')
+      .delete()
+      .eq('customer_id', customerId)
+
+    if (deleteReservationsError) {
+      return NextResponse.json({ error: 'Failed to delete reservations' }, { status: 500 })
+    }
+
+    // 2) 顧客を削除
+    const { error: deleteCustomerError } = await supabaseAdmin
+      .from('customers')
+      .delete()
+      .eq('id', customerId)
+
+    if (deleteCustomerError) {
+      return NextResponse.json({ error: 'Failed to delete customer' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 

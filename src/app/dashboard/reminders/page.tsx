@@ -192,6 +192,7 @@ export default function StoreRemindersPage() {
                   <th className="py-2 pr-4">ステータス</th>
                   <th className="py-2 pr-4">一週間前</th>
                   <th className="py-2 pr-4">前日</th>
+                  <th className="py-2 pr-4">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,11 +223,32 @@ export default function StoreRemindersPage() {
                     <td className="py-2 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs border ${c.sent1d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent1d ? '済' : '-'}</span>
                     </td>
+                    <td className="py-2 pr-4">
+                      <button
+                        className="text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 bg-white hover:bg-red-50"
+                        onClick={async () => {
+                          if (!confirm('この顧客と関連する予約を削除します。よろしいですか？')) return
+                          try {
+                            const { data: sessionData } = await supabase.auth.getSession()
+                            const token = sessionData.session?.access_token
+                            const res = await fetch(`/api/customers/${c.customerId}`, {
+                              method: 'DELETE',
+                              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                            })
+                            const j = await res.json().catch(() => ({}))
+                            if (!res.ok || !j.ok) throw new Error(j.error || '削除に失敗しました')
+                            setCustomers((list) => list.filter(x => x.customerId !== c.customerId))
+                          } catch (e: any) {
+                            alert(e.message || '削除時にエラーが発生しました')
+                          }
+                        }}
+                      >削除</button>
+                    </td>
                   </tr>
                 ))}
                 {customers.length === 0 && (
                   <tr>
-                    <td className="py-4 text-gray-500" colSpan={4}>対象のお客様がいません</td>
+                    <td className="py-4 text-gray-500" colSpan={6}>対象のお客様がいません</td>
                   </tr>
                 )}
               </tbody>
@@ -236,7 +258,7 @@ export default function StoreRemindersPage() {
           {/* Mobile: カード表示 */}
           <div className="sm:hidden space-y-3">
             {customers.map((c) => (
-              <div key={c.customerId} className="border border-gray-200 rounded-lg p-4">
+              <div key={c.customerId} className="border border-gray-200 rounded-lg p-4 relative">
                 <div className="flex items-center justify-between">
                   <Link href={`/dashboard/customers/${c.customerId}`} className="text-blue-600 font-medium hover:underline">
                     {c.customerName || '(名前未設定)'}
@@ -259,6 +281,28 @@ export default function StoreRemindersPage() {
                   <span className={`px-2 py-0.5 rounded border ${c.sent7d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent7d ? '済' : '-'}</span>
                   <span className="ml-3 text-gray-600">前日:</span>
                   <span className={`px-2 py-0.5 rounded border ${c.sent1d ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{c.sent1d ? '済' : '-'}</span>
+                </div>
+                <div className="absolute right-3 bottom-3">
+                  <button
+                    className="text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 bg-white hover:bg-red-50"
+                    onClick={async () => {
+                      if (!confirm('この顧客と関連する予約を削除します。よろしいですか？')) return
+                      try {
+                        const { data: sessionData } = await supabase.auth.getSession()
+                        const token = sessionData.session?.access_token
+                        const res = await fetch(`/api/customers/${c.customerId}`, {
+                          method: 'DELETE',
+                          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                        })
+                        const j = await res.json().catch(() => ({}))
+                        if (!res.ok || !j.ok) throw new Error(j.error || '削除に失敗しました')
+                        // 画面から即時削除
+                        setCustomers((list) => list.filter(x => x.customerId !== c.customerId))
+                      } catch (e: any) {
+                        alert(e.message || '削除時にエラーが発生しました')
+                      }
+                    }}
+                  >削除</button>
                 </div>
               </div>
             ))}
