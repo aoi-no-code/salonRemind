@@ -80,6 +80,14 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
 
   if (!detail) return null
 
+  const getStatusInfo = (status?: string | null) => {
+    const s = status || 'scheduled'
+    if (s === 'cancelled') return { label: 'キャンセル', cls: 'bg-red-50 text-red-700 border-red-200' }
+    if (s === 'change_requested') return { label: '変更希望', cls: 'bg-yellow-50 text-yellow-800 border-yellow-200' }
+    if (s === 'visit_planned') return { label: '来店確認済み', cls: 'bg-green-50 text-green-700 border-green-200' }
+    return { label: '来店予定', cls: 'bg-gray-50 text-gray-700 border-gray-200' }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
@@ -159,12 +167,9 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                     <td className="py-2 pr-4">{formatJstMdHm(r.startAt)}</td>
                     <td className="py-2 pr-4">{r.storeName || '-'}</td>
                     <td className="py-2 pr-4">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${
-                        r.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
-                        r.status === 'change_requested' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-                        r.status === 'visit_planned' ? 'bg-green-50 text-green-700 border-green-200' :
-                        'bg-gray-50 text-gray-700 border-gray-200'
-                      }`}>{r.status}</span>
+                      {(() => { const info = getStatusInfo(r.status); return (
+                        <span className={`text-xs px-2 py-0.5 rounded border ${info.cls}`}>{info.label}</span>
+                      )})()}
                     </td>
                     <td className="py-2 pr-4 max-w-[360px] truncate" title={r.note || ''}>{r.note || '-'}</td>
                     <td className="py-2 pr-4">
@@ -219,12 +224,9 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
                   <div className="col-span-2 text-gray-900">{r.storeName || '-'}</div>
                   <div className="text-gray-600">ステータス</div>
                   <div className="col-span-2">
-                    <span className={`text-xs px-2 py-0.5 rounded border ${
-                      r.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
-                      r.status === 'change_requested' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-                      r.status === 'visit_planned' ? 'bg-green-50 text-green-700 border-green-200' :
-                      'bg-gray-50 text-gray-700 border-gray-200'
-                    }`}>{r.status}</span>
+                    {(() => { const info = getStatusInfo(r.status); return (
+                      <span className={`text-xs px-2 py-0.5 rounded border ${info.cls}`}>{info.label}</span>
+                    )})()}
                   </div>
                   <div className="text-gray-600">メモ</div>
                   <div className="col-span-2 text-gray-900 truncate" title={r.note || ''}>{r.note || '-'}</div>
